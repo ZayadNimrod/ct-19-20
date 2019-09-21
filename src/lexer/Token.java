@@ -12,7 +12,7 @@ public class Token {
         // the \ (backslash) is used as an escape character in the regular expression below
         // ' is used to enclose character while " is used to enclose strings
 
-        IDENTIFIER, // ('a'|...|'z'|'A'|...|'Z'|'_')('0'|...|'9'|'a'|...|'z'|'A'|...|'Z'|'_')*
+        IDENTIFIER, // ('a'|...|'z'|'A'|...|'Z'|'_')('0'|...|'9'|'a'|...|'z'|'A'|...|'Z'|'_')*		
 
         ASSIGN, // '='
 
@@ -27,7 +27,7 @@ public class Token {
         COMMA, // ','
 
         // types
-        INT,  // "int"
+        INT,  // "int"				
         VOID, // "void"
         CHAR, // "char"
 
@@ -37,10 +37,10 @@ public class Token {
         WHILE,  // "while"
         RETURN, // "return"
         STRUCT, // "struct"
-        SIZEOF, // "sizeof"
+        SIZEOF, // "sizeof"			
 
         // include
-        INCLUDE, // "#include"
+        INCLUDE, // "#include"		
 
         // literals
         STRING_LITERAL, // \".*\"  any sequence of characters enclosed within two double quote " (please be aware of the escape character backslash \)
