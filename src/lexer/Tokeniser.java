@@ -102,6 +102,7 @@ public class Tokeniser {
 				// multiline comment, skip until ending
 				scanner.next();
 				while (true) {
+					scanner.next();
 					if (scanner.peek() == '*') {
 						scanner.next();
 						if (scanner.peek() == '/') {
@@ -243,6 +244,8 @@ public class Tokeniser {
 					scanner.next();
 					return new Token(TokenClass.CHAR_LITERAL, Character.toString(a), line, column);
 				}
+				
+				//TODO: this cannot handle excape characters
 			}
 
 		}
