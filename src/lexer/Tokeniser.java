@@ -216,7 +216,18 @@ public class Tokeniser {
 			// string literal
 			String lit = "";
 			while (scanner.peek() != '"') {
+				if(scanner.peek()=='\\') {
+					//this is an escape character
+					scanner.next();
+					char e = scanner.peek();
+					if(e=='n') {lit+='\n';}
+					if(e=='t') {lit+='\t';}
+					if(e=='\\') {lit+='\\';}
+					if(e=='"') {lit+='\"';}
+				}else {				
+				
 				lit += scanner.peek();
+				}
 				scanner.next();
 			}
 			scanner.next();
@@ -234,18 +245,26 @@ public class Tokeniser {
 			return new Token(TokenClass.INT_LITERAL, lit, line, column);
 		}
 
-		if (c == '\'') {
+		if (c == '\'') {	
 			// char literal
-			if (scanner.peek() == '\'') {
+			char a = scanner.next();
+			if (a == '\'') {
 				return new Token(TokenClass.CHAR_LITERAL, "", line, column);
 			} else {
-				char a = scanner.next();
+				
 				if (scanner.peek() == '\'') {
 					scanner.next();
 					return new Token(TokenClass.CHAR_LITERAL, Character.toString(a), line, column);
 				}
-				
-				//TODO: this cannot handle excape characters
+				if (a=='\\') {
+					char e = scanner.next();
+					scanner.next();
+					if(e=='n') {return new Token(TokenClass.CHAR_LITERAL, "\n", line, column);}
+					if(e=='t') {return new Token(TokenClass.CHAR_LITERAL, "\t", line, column);}
+					if(e=='\\') {return new Token(TokenClass.CHAR_LITERAL, "\\", line, column);}
+					if(e=='\'') {return new Token(TokenClass.CHAR_LITERAL, "\'", line, column);}
+					
+				}
 			}
 
 		}
