@@ -216,17 +216,37 @@ public class Tokeniser {
 			// string literal
 			String lit = "";
 			while (scanner.peek() != '"') {
-				if(scanner.peek()=='\\') {
-					//this is an escape character
+				if (scanner.peek() == '\\') {
+					// this is an escape character
 					scanner.next();
 					char e = scanner.peek();
-					if(e=='n') {lit+='\n';}
-					if(e=='t') {lit+='\t';}
-					if(e=='\\') {lit+='\\';}
-					if(e=='"') {lit+='\"';}
-				}else {				
-				
-				lit += scanner.peek();
+					if (e == 'n') {
+						lit += '\n';
+					}
+					if (e == 't') {
+						lit += '\t';
+					}
+					if (e == '\\') {
+						lit += '\\';
+					}
+					if (e == '"') {
+						lit += '"';
+					}
+					if (e == 'b') {
+						lit += '\b';
+					}
+					if (e == 'r') {
+						lit += '\r';
+					}
+					if (e == 'f') {
+						lit += '\f';
+					}
+					if (e == '0') {
+						lit += '\0';
+					}
+				} else {
+
+					lit += scanner.peek();
 				}
 				scanner.next();
 			}
@@ -245,25 +265,44 @@ public class Tokeniser {
 			return new Token(TokenClass.INT_LITERAL, lit, line, column);
 		}
 
-		if (c == '\'') {	
+		if (c == '\'') {
 			// char literal
 			char a = scanner.next();
 			if (a == '\'') {
 				return new Token(TokenClass.CHAR_LITERAL, "", line, column);
 			} else {
-				
+
 				if (scanner.peek() == '\'') {
 					scanner.next();
 					return new Token(TokenClass.CHAR_LITERAL, Character.toString(a), line, column);
-				}
-				if (a=='\\') {
+				} else if (a == '\\') {
 					char e = scanner.next();
 					scanner.next();
-					if(e=='n') {return new Token(TokenClass.CHAR_LITERAL, "\n", line, column);}
-					if(e=='t') {return new Token(TokenClass.CHAR_LITERAL, "\t", line, column);}
-					if(e=='\\') {return new Token(TokenClass.CHAR_LITERAL, "\\", line, column);}
-					if(e=='\'') {return new Token(TokenClass.CHAR_LITERAL, "\'", line, column);}
-					
+					if (e == 'n') {
+						return new Token(TokenClass.CHAR_LITERAL, "\n", line, column);
+					}
+					if (e == 't') {
+						return new Token(TokenClass.CHAR_LITERAL, "\t", line, column);
+					}
+					if (e == '\\') {
+						return new Token(TokenClass.CHAR_LITERAL, "\\", line, column);
+					}
+					if (e == '\'') {
+						return new Token(TokenClass.CHAR_LITERAL, "\'", line, column);
+					}
+					if (e == '\b') {
+						return new Token(TokenClass.CHAR_LITERAL, "\b", line, column);
+					}
+					if (e == 'r') {
+						return new Token(TokenClass.CHAR_LITERAL, "\r", line, column);
+					}
+					if (e == 'f') {
+						return new Token(TokenClass.CHAR_LITERAL, "\f", line, column);
+					}
+					if (e == '\0') {
+						return new Token(TokenClass.CHAR_LITERAL, "\0", line, column);
+					}
+
 				}
 			}
 
@@ -277,33 +316,32 @@ public class Tokeniser {
 				id += scanner.peek();
 				scanner.next();
 			}
-			switch(id) {
-			case("int"):
-				return new Token(TokenClass.INT,line,column);
-			case("void"):
-				return new Token(TokenClass.VOID,line,column);
-			case("char"):
-				return new Token(TokenClass.CHAR,line,column);
-			case("if"):
-				return new Token(TokenClass.IF,line,column);
+			switch (id) {
+			case ("int"):
+				return new Token(TokenClass.INT, line, column);
+			case ("void"):
+				return new Token(TokenClass.VOID, line, column);
+			case ("char"):
+				return new Token(TokenClass.CHAR, line, column);
+			case ("if"):
+				return new Token(TokenClass.IF, line, column);
 
-			case("else"):
-				return new Token(TokenClass.ELSE,line,column);
-			case("while"):
-				return new Token(TokenClass.WHILE,line,column);
-			case("return"):
-				return new Token(TokenClass.RETURN,line,column);
+			case ("else"):
+				return new Token(TokenClass.ELSE, line, column);
+			case ("while"):
+				return new Token(TokenClass.WHILE, line, column);
+			case ("return"):
+				return new Token(TokenClass.RETURN, line, column);
 
-			case("struct"):
-				return new Token(TokenClass.STRUCT,line,column);
-			case("sizeof"):
-				return new Token(TokenClass.SIZEOF,line,column);
+			case ("struct"):
+				return new Token(TokenClass.STRUCT, line, column);
+			case ("sizeof"):
+				return new Token(TokenClass.SIZEOF, line, column);
 			}
-			
+
 			return new Token(TokenClass.IDENTIFIER, id, line, column);
 
 		}
-		// ... to be completed
 
 		// if we reach this point, it means we did not recognise a valid token
 		error(c, line, column);
