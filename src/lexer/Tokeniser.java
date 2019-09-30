@@ -288,7 +288,7 @@ public class Tokeniser {
 						return new Token(TokenClass.CHAR_LITERAL, "\\", line, column);
 					}
 					if (e == '\'') {
-						return new Token(TokenClass.CHAR_LITERAL, "\'", line, column);
+						return new Token(TokenClass.CHAR_LITERAL, "'", line, column);
 					}
 					if (e == '\b') {
 						return new Token(TokenClass.CHAR_LITERAL, "\b", line, column);
