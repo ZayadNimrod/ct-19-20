@@ -243,6 +243,8 @@ public class Tokeniser {
 					}
 					if (e == '0') {
 						lit += '\0';
+					}else {
+						lit+="\\"+e;
 					}
 				} else {
 
