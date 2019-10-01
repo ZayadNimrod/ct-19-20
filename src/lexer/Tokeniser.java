@@ -223,31 +223,31 @@ public class Tokeniser {
 					if (e == 'n') {
 						lit += '\n';
 					}
-					if (e == 't') {
+					else if (e == 't') {
 						lit += '\t';
 					}
-					if (e == '\\') {
+					else if (e == '\\') {
 						lit += '\\';
 					}
-					if (e == '"') {
+					else if (e == '"') {
 						lit += '"';
 					}
-					if (e == 'b') {
+					else if (e == 'b') {
 						lit += '\b';
 					}
-					if (e == 'r') {
+					else if (e == 'r') {
 						lit += '\r';
 					}
-					if (e == 'f') {
+					else if (e == 'f') {
 						lit += '\f';
 					}
-					if (e == '0') {
+					else if (e == '0') {
 						lit += '\0';
-					}else {
-						lit+="\\"+e;
+					}else {						
+						lit+='\\';
+						lit+=e;
 					}
 				} else {
-
 					lit += scanner.peek();
 				}
 				scanner.next();
