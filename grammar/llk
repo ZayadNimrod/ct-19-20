@@ -17,47 +17,83 @@ include    ::= "#include" STRING_LITERAL
 
 structdeclRep ::= structdecl structDeclRep | ε
 
-structdecl ::= structtype "{" (vardecl)+ "}" ";"    # structure declaration
+structdecl ::= structtype "{" vardecl vardeclRep "}" ";"    # structure declaration
 
 
 
 vardeclRep ::= vardecl vardeclRep | ε
 
-vardecl    ::= type IDENT ";"                       # normal declaration, e.g. int a;
-             | type IDENT "[" INT_LITERAL "]" ";"   # array declaration, e.g. int a[2];
+vardecl    ::= type IDENT (ε | arrayDecl)";" # normal declaration, e.g. int a; vs array declaration, e.g. int a[2];
+
+             
+arrayDecl :: = "[" INT_LITERAL "]"
 
 
-
-funcdeclRep::= functdeclRep funcdeclRep | ε
+funcdeclRep::= functdecl funcdeclRep | ε
 
 fundecl    ::= type IDENT "(" params ")" block    # function declaration
 
 
 
+type       ::= ("int" | "char" | "void" | structtype) optionalStar
 
-type       ::= ("int" | "char" | "void" | structtype) ["*"]
+optionalStar = "*" | ε
+
 structtype ::= "struct" IDENT
 
-params     ::= [ type IDENT ("," type IDENT)* ]
+params     ::=  type IDENT extraParam |	ε
+
+extraParam ::= "," type IDENT extraParam | ε
+
+
+stmtRep    ::= stmt stmtRep | ε
 
 stmt       ::= block
              | "while" "(" exp ")" stmt              # while loop
-             | "if" "(" exp ")" stmt ["else" stmt]   # if then else
-             | "return" [exp] ";"                    # return
-             | exp "=" exp ";"                      # assignment
-             | exp ";"                               # expression statement, e.g. a function call
+             | "if" "(" exp ")" stmt maybeElse  # if then else
+             | "return" maybeExp ";"                    # return
+             | exp (assign | ε) ";" # assignment vs expression statement, e.g. a function call
 
-block      ::= "{" (vardecl)* (stmt)* "}"
+assign	   :: "=" exp
 
-exp        ::= "(" exp ")"
-             | (IDENT | INT_LITERAL)
+maybeElse  ::= "else" stmt | ε
+
+maybeExp   ::= exp | ε
+
+block      ::= "{" vardeclRep stmtRep "}"
+
+exp        ::= noOpExp           
+             | binaryOp
+             
+#seperating exp out into these means we avoid the case where it loops around all the binary op levels until it parses a || as more tightly binding than && (for example) without brackets   
+noOpExp    ::=  "(" exp ")"
+  			 | (IDENT | INT_LITERAL)
              | "-" exp
              | CHAR_LITERAL
              | STRING_LITERAL
-             | exp (">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" | "&&") exp  # binary operators
              | arrayaccess | fieldaccess | valueat | funcall | sizeof | typecast
+             
+             
+#precedence of operators taken from https://en.cppreference.com/w/c/language/operator_precedence
+binaryOp   ::= binaryOp "||" binaryOp | binaryOp2 # binary operators; lowest precendece: OR
+             
+binaryOp2  ::= binaryOp2 "&&" binaryOp2  | binaryOp3
 
-funcall      ::= IDENT "(" [ exp ("," exp)* ] ")"
+binaryOp3  ::= binaryOp3 ("!=" | "==") binaryOp3 | binaryOp4
+
+binaryOp4  ::= binaryOp4 (">" | "<" | ">=" | "<=" ) binaryOp4 | binaryOp5 
+
+binaryOp5  ::= binaryOp5 ("+" | "-") binaryOp5 | binaryOp6
+
+binaryOp6  ::= binaryop6 ("/" | "*" | "%") binaryOp6 | noOpExp
+
+
+funcall      ::= IDENT "(" maybeArgs ")"
+
+maybeArgs 	 ::= exp extraArg | ε
+
+extrArg 	 ::= "," exp extraArg | ε
+
 arrayaccess  ::= exp "[" exp "]"                  # array access
 fieldaccess  ::= exp "." IDENT                    # structure field member access
 valueat      ::= "*" exp                          # Value at operator (pointer indirection)
