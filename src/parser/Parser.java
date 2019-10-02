@@ -197,7 +197,6 @@ public class Parser {
 		parseParams();
 		expect(TokenClass.RPAR);
 		parseBlock();
-
 	}
 
 	private void parseType() {
@@ -241,50 +240,53 @@ public class Parser {
 		}
 	}
 
-	
-
 	private void parseStmtRep() {
-		//stmtRep    ::= stmt stmtRep | ε
-		if() {
+		// stmtRep ::= stmt stmtRep | ε
+		// follow set of stmtRep is just "}", since it is right-recursive (is that a
+		// term?) and only called from block, so check for that
+
+		if (accept(TokenClass.RBRA)) {
+			// do nothing
+			return;
+		} else {
 			parseStmt();
 			parseStmtRep();
-		}	
+		}
 	}
 
 	private void parseStmt() {
-		/*stmt       ::= block
-             | "while" "(" exp ")" stmt              # while loop
-             | "if" "(" exp ")" stmt maybeElse  # if then else
-             | "return" maybeExp ";"                    # return
-             | exp (assign | ε) ";" # assignment vs expression statement, e.g. a function call
+		/*
+		 * stmt ::= block | "while" "(" exp ")" stmt # while loop | "if" "(" exp ")"
+		 * stmt maybeElse # if then else | "return" maybeExp ";" # return | exp (assign
+		 * | ε) ";" # assignment vs expression statement, e.g. a function call
 		 */
-		if(accept(TokenClass.LBRA)) {
+		if (accept(TokenClass.LBRA)) {
 			parseBlock();
-		}else if (accept(TokenClass.WHILE)) {
+		} else if (accept(TokenClass.WHILE)) {
 			expect(TokenClass.WHILE);
 			expect(TokenClass.LPAR);
 			parseExp();
 			expect(TokenClass.RPAR);
-			parseSmt();
-		}else if (accept(TokenClass.IF)) {
+			parseStmt();
+		} else if (accept(TokenClass.IF)) {
 			expect(TokenClass.IF);
 			expect(TokenClass.LPAR);
 			parseExp();
 			expect(TokenClass.RPAR);
 			parseStmt();
 			parseMaybeElse();
-		}else if (accept(TokenClass.RETURN)) {
+		} else if (accept(TokenClass.RETURN)) {
 			expect(TokenClass.RETURN);
 			parseMaybeExp();
 			expect(TokenClass.SC);
-		}else if () {
+		} else {
 			parseExp();
 			parseMaybeAssign();
-		}	
-		
+		}
+
 	}
 
-	private void parsemaybeAssign() {
+	private void parseMaybeAssign() {
 		// (assign | ε)
 		if (accept(TokenClass.ASSIGN)) {
 			// assign :: "=" exp
@@ -300,16 +302,17 @@ public class Parser {
 			parseStmt();
 		}
 	}
-	
+
 	private void parseMaybeExp() {
-		//maybeExp   ::= exp | ε
-		if() {
+		// maybeExp ::= exp | ε
+		// only place this is called from is stmt, our follow set is ";"
+		if (accept(TokenClass.SC)) {
+			return;
+		} else {
 			parseExp();
 		}
 	}
-	
-	
-	
+
 	private void parseBlock() {
 		// block ::= "{" vardeclRep stmtRep "}"
 		expect(TokenClass.LBRA);
@@ -318,5 +321,195 @@ public class Parser {
 		expect(TokenClass.RBRA);
 	}
 
-	// to be completed ...
+	private void parseExp() {
+		// exp ::= noOpExp
+		// | binaryOp
+
+		// start set of NoOpExp is the same as that of binaryOp...
+//		if(accept(TokenClass.LPAR,TokenClass.IDENTIFIER,TokenClass.INT_LITERAL,TokenClass.CHAR_LITERAL,TokenClass.STRING_LITERAL,TokenClass.MINUS,TokenClass.ASTERIX,TokenClass.SIZEOF,TokenClass.LPAR)) {
+//			parseNoOpExp();
+//		}else if () {
+//			parseBinaryOp();
+//		}
+		/// the above also has the same start set...
+
+		// binaryOp can just become NoOpExp, so lets just send ourselves there
+		parseBinaryOp();
+
+		// or maybe try-except programming...?
+		error();// ?
+
+	}
+
+	private void parseNoOpExp() {
+		/*
+		 * noOpExp ::= "(" exp ")" | (IDENT | INT_LITERAL) | "-" exp | CHAR_LITERAL |
+		 * STRING_LITERAL | arrayaccess | fieldaccess | valueat | funcall | sizeof |
+		 * typecast
+		 */
+		// well we have ambiguity
+		if (accept(TokenClass.LPAR)) {
+			expect(TokenClass.LPAR);
+			parseExp();
+			expect(TokenClass.RPAR);
+		} else if (accept(TokenClass.IDENTIFIER)) {
+			if (lookAhead(1).tokenClass == TokenClass.LPAR) {
+				parseFunCall();
+			}
+			expect(TokenClass.IDENTIFIER);
+		} else if (accept(TokenClass.INT_LITERAL)) {
+			expect(TokenClass.INT_LITERAL);
+		} else if (accept(TokenClass.CHAR_LITERAL)) {
+			expect(TokenClass.CHAR_LITERAL);
+		} else if (accept(TokenClass.STRING_LITERAL)) {
+			expect(TokenClass.STRING_LITERAL);
+		} else if (accept(TokenClass.MINUS)) {
+			expect(TokenClass.MINUS);
+			parseExp();
+		} else if (accept(TokenClass.ASTERIX)) {
+			parseValueAt();
+		} else if (accept(TokenClass.SIZEOF)) {
+			parseSizeOf();
+		} else if (accept(TokenClass.LPAR)) {
+			parseTypeCast();
+		} else {
+			// arrayAcces and FieldAccess have the same start set, so lets make a
+			// nonterminal for those
+			parseArrayOrFieldAccess();
+		}
+
+	}
+
+	private void parseBinaryOp() {
+		// binaryOp ::= binaryOp2 ("||" binaryOp | ε)
+		parseBinaryOp2();
+		if (accept(TokenClass.OR)) {
+			expect(TokenClass.OR);
+			parseBinaryOp();
+		}
+	}
+
+	private void parseBinaryOp2() {
+		// binaryOp2 ::= binaryOp3 ("&&" binaryOp2 | ε)
+		parseBinaryOp3();
+		if (accept(TokenClass.AND)) {
+			expect(TokenClass.AND);
+			parseBinaryOp2();
+		}
+	}
+
+	private void parseBinaryOp3() {
+		// binaryOp3 ::= binaryOp4 (("!=" | "==") binaryOp3 | ε)
+		parseBinaryOp4();
+		if (accept(TokenClass.NE, TokenClass.EQ)) {
+			nextToken();
+			parseBinaryOp3();
+		}
+	}
+
+	private void parseBinaryOp4() {
+		// binaryOp4 ::= binaryOp5 ((">" | "<" | ">=" | "<=" ) binaryOp4 | ε)
+		parseBinaryOp5();
+		if (accept(TokenClass.GT, TokenClass.LT, TokenClass.GE, TokenClass.LE)) {
+			nextToken();
+			parseBinaryOp4();
+		}
+	}
+
+	private void parseBinaryOp5() {
+		// binaryOp5 ::= binaryOp6 (("+" | "-") binaryOp5 | ε)
+		parseBinaryOp6();
+		if (accept(TokenClass.PLUS, TokenClass.MINUS)) {
+			nextToken();
+			parseBinaryOp5();
+		}
+	}
+
+	private void parseBinaryOp6() {
+		// binaryOp6 ::= noOpExp (("/" | "*" | "%") binaryOp6 | ε)
+		parseNoOpExp();
+		if (accept(TokenClass.DIV, TokenClass.ASTERIX, TokenClass.REM)) {
+			nextToken();
+			parseBinaryOp6();
+		}
+	}
+
+	private void parseFunCall() {
+		// funcall ::= IDENT "(" maybeArgs ")"
+		expect(TokenClass.IDENTIFIER);
+		expect(TokenClass.LPAR);
+		parseMaybeArgsCloseBrace();
+	}
+
+	private void parseMaybeArgsCloseBrace() {
+		// maybeArgs ::= exp extraArg |ε
+		// only ever called from funCall, so our follow set is ")"
+		if (accept(TokenClass.RPAR)) {
+			return;
+		} else {
+			parseExp();
+			parseExtraArg();
+		}
+	}
+
+	private void parseExtraArg() {
+		// extrArg ::= "," exp extraArg | ε
+		if (accept(TokenClass.COMMA)) {
+			expect(TokenClass.COMMA);
+			parseExp();
+			parseExtraArg();
+		}
+	}
+
+	private void parseArrayOrFieldAccess() {
+		parseExp();
+		if (accept(TokenClass.LSBR)) {
+			parseArrayAccess();
+		} else if (accept(TokenClass.DOT)) {
+			parseFieldAccess();
+		}
+
+		error();// ?
+	}
+
+	private void parseArrayAccess() {
+		// arrayaccess ::= exp "[" exp "]"
+		// parseExp();
+		// parseArrayOrFieldAccess parses Exp for us
+
+		expect(TokenClass.LSBR);
+		parseExp();
+		expect(TokenClass.RSBR);
+	}
+
+	private void parseFieldAccess() {
+		// fieldaccess ::= exp "." IDENT
+		// parseExp();
+		// parseArrayOrFieldAccess parses Exp for us
+		expect(TokenClass.DOT);
+		expect(TokenClass.IDENTIFIER);
+	}
+
+	private void parseValueAt() {
+		// valueat ::= "*" exp
+		expect(TokenClass.ASTERIX);
+		parseExp();
+	}
+
+	private void parseSizeOf() {
+		// sizeof ::= "sizeof" "(" type ")"
+		expect(TokenClass.SIZEOF);
+		expect(TokenClass.LPAR);
+		parseType();
+		expect(TokenClass.RPAR);
+	}
+
+	private void parseTypeCast() {
+		// typecast ::= "(" type ")" exp
+		expect(TokenClass.LPAR);
+		parseType();
+		expect(TokenClass.RPAR);
+		parseExp();
+	}
+
 }

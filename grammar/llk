@@ -51,14 +51,14 @@ stmtRep    ::= stmt stmtRep | ε
 stmt       ::= block
              | "while" "(" exp ")" stmt              # while loop
              | "if" "(" exp ")" stmt maybeElse  # if then else
-             | "return" maybeExp ";"                    # return
+             | "return" maybeExp ";"                     # return
              | exp (assign | ε) ";" # assignment vs expression statement, e.g. a function call
 
 assign	   :: "=" exp
 
 maybeElse  ::= "else" stmt | ε
 
-maybeExp   ::= exp | ε
+maybeExp   ::= exp | ε 
 
 block      ::= "{" vardeclRep stmtRep "}"
 
@@ -75,22 +75,24 @@ noOpExp    ::=  "(" exp ")"
              
              
 #precedence of operators taken from https://en.cppreference.com/w/c/language/operator_precedence
-binaryOp   ::= binaryOp "||" binaryOp | binaryOp2 # binary operators; lowest precendece: OR
+
+##going to have to rewrite this
+binaryOp   ::= binaryOp2 ("||" binaryOp | ε) # binary operators; lowest precendece: OR
              
-binaryOp2  ::= binaryOp2 "&&" binaryOp2  | binaryOp3
+binaryOp2  ::= binaryOp3 ("&&" binaryOp2  | ε)
 
-binaryOp3  ::= binaryOp3 ("!=" | "==") binaryOp3 | binaryOp4
+binaryOp3  ::= binaryOp4 (("!=" | "==") binaryOp3 | ε)
 
-binaryOp4  ::= binaryOp4 (">" | "<" | ">=" | "<=" ) binaryOp4 | binaryOp5 
+binaryOp4  ::= binaryOp5 ((">" | "<" | ">=" | "<=" ) binaryOp4 | ε) 
 
-binaryOp5  ::= binaryOp5 ("+" | "-") binaryOp5 | binaryOp6
+binaryOp5  ::= binaryOp6 (("+" | "-") binaryOp5 | ε)
 
-binaryOp6  ::= binaryop6 ("/" | "*" | "%") binaryOp6 | noOpExp
+binaryOp6  ::= noOpExp (("/" | "*" | "%") binaryOp6 | ε)
 
 
 funcall      ::= IDENT "(" maybeArgs ")"
 
-maybeArgs 	 ::= exp extraArg | ε
+maybeArgs 	 ::= exp extraArg |ε 
 
 extrArg 	 ::= "," exp extraArg | ε
 
