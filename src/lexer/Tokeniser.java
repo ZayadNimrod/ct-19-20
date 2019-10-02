@@ -219,29 +219,22 @@ public class Tokeniser {
 					char e = scanner.peek();
 					if (e == 'n') {
 						lit += '\n';
-					}
-					else if (e == 't') {
+					} else if (e == 't') {
 						lit += '\t';
-					}
-					else if (e == '\\') {
+					} else if (e == '\\') {
 						lit += '\\';
-					}
-					else if (e == '"') {
+					} else if (e == '"') {
 						lit += '"';
-					}
-					else if (e == 'b') {
+					} else if (e == 'b') {
 						lit += '\b';
-					}
-					else if (e == 'r') {
+					} else if (e == 'r') {
 						lit += '\r';
-					}
-					else if (e == 'f') {
+					} else if (e == 'f') {
 						lit += '\f';
-					}
-					else if (e == '0') {
+					} else if (e == '0') {
 						lit += '\0';
-					}else {						
-						//unknown escape character. report an error
+					} else {
+						// unknown escape character. report an error
 						error(c, line, column);
 						return new Token(TokenClass.INVALID, line, column);
 					}
@@ -258,9 +251,19 @@ public class Tokeniser {
 		if (Character.isDigit(c)) {
 			// int literal
 			String lit = "";
-			while (Character.isDigit(scanner.peek())) {
-				lit += scanner.peek();
-				scanner.next();
+			// while (Character.isDigit(scanner.peek())) {
+			while (!Character.isWhitespace(scanner.peek())) {
+				if (Character.isDigit(scanner.peek())) {
+					lit += scanner.peek();
+					scanner.next();
+				} else if(Character.isAlphabetic(scanner.peek())){
+					//i.e we have an identifier like 247aday
+					error(c, line, column);
+					return new Token(TokenClass.INVALID, line, column);
+				}else {
+					break;
+					//end of the int literal, we are in an expression like 34*15+13
+				}
 			}
 			return new Token(TokenClass.INT_LITERAL, lit, line, column);
 		}
