@@ -68,9 +68,6 @@ public class Tokeniser {
 					return new Token(TokenClass.INVALID, line, column);
 				}
 			}
-			while (scanner.peek() != '\n') {
-				scanner.next();
-			}
 			return new Token(TokenClass.INCLUDE, line, column);
 		}
 
@@ -244,8 +241,9 @@ public class Tokeniser {
 					else if (e == '0') {
 						lit += '\0';
 					}else {						
-						lit+='\\';
-						lit+=e;
+						//unknown escape character. report an error
+						error(c, line, column);
+						return new Token(TokenClass.INVALID, line, column);
 					}
 				} else {
 					lit += scanner.peek();
