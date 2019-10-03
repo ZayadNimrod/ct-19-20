@@ -144,6 +144,7 @@ public class Parser {
 		// structtype "{" vardecl vardeclRep "}" ";"
 		parseStructType();
 		expect(TokenClass.LBRA);
+
 		parseVarDecl();
 		parseVarDeclRep();
 		expect(TokenClass.RBRA);
@@ -153,7 +154,11 @@ public class Parser {
 	private void parseVarDeclRep() {
 		// TODO: figure out when to stop recursing, with accepts
 		// vardeclRep ::= vardecl vardeclRep | ε
-		if (accept(TokenClass.INT, TokenClass.CHAR, TokenClass.VOID, TokenClass.STRUCT)) {
+		// lookAhead is to check that this is a fucntion, not a variable decleration
+		
+		if (accept(TokenClass.INT, TokenClass.CHAR, TokenClass.VOID, TokenClass.STRUCT) && lookAhead(2).tokenClass == TokenClass.LSBR) {
+
+			System.out.println("pvrRep if");
 			parseVarDecl();
 			parseVarDeclRep();
 		}
@@ -162,20 +167,21 @@ public class Parser {
 
 	private void parseVarDecl() {
 		// vardecl ::= type IDENT (ε | arrayDecl)";"
-
 		parseType();
 		expect(TokenClass.IDENTIFIER);
 		if (accept(TokenClass.SC)) {
 			nextToken();
 			return;
 		} else {
+			System.out.println("pvr else");
 			parseArrayDecl();
 		}
-
 	}
 
 	private void parseArrayDecl() {
 		// "[" INT_LITERAL "]"
+
+		System.out.println("arrayDecl");
 		expect(TokenClass.LSBR);
 		expect(TokenClass.INT_LITERAL);
 		expect(TokenClass.RSBR);
@@ -191,6 +197,7 @@ public class Parser {
 
 	private void parseFunDecl() {
 		// fundecl ::= type IDENT "(" params ")" block # function declaration
+		System.out.println("Function decl");
 		parseType();
 		expect(TokenClass.IDENTIFIER);
 		expect(TokenClass.LPAR);
@@ -463,6 +470,8 @@ public class Parser {
 
 	private void parseArrayOrFieldAccess() {
 		parseExp();
+
+		System.out.println("arrarOrFieldAccesss");
 		if (accept(TokenClass.LSBR)) {
 			parseArrayAccess();
 		} else if (accept(TokenClass.DOT)) {
@@ -477,6 +486,7 @@ public class Parser {
 		// parseExp();
 		// parseArrayOrFieldAccess parses Exp for us
 
+		System.out.println("arrayAccess");
 		expect(TokenClass.LSBR);
 		parseExp();
 		expect(TokenClass.RSBR);

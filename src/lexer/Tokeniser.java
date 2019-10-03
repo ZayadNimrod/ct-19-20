@@ -256,13 +256,13 @@ public class Tokeniser {
 				if (Character.isDigit(scanner.peek())) {
 					lit += scanner.peek();
 					scanner.next();
-				} else if(Character.isAlphabetic(scanner.peek())){
-					//i.e we have an identifier like 247aday
+				} else if (Character.isAlphabetic(scanner.peek())) {
+					// i.e we have an identifier like 247aday
 					error(c, line, column);
 					return new Token(TokenClass.INVALID, line, column);
-				}else {
+				} else {
 					break;
-					//end of the int literal, we are in an expression like 34*15+13
+					// end of the int literal, we are in an expression like 34*15+13
 				}
 			}
 			return new Token(TokenClass.INT_LITERAL, lit, line, column);
@@ -328,7 +328,6 @@ public class Tokeniser {
 				return new Token(TokenClass.CHAR, line, column);
 			case ("if"):
 				return new Token(TokenClass.IF, line, column);
-
 			case ("else"):
 				return new Token(TokenClass.ELSE, line, column);
 			case ("while"):
