@@ -154,9 +154,10 @@ public class Parser {
 	private void parseVarDeclRep() {
 		// TODO: figure out when to stop recursing, with accepts
 		// vardeclRep ::= vardecl vardeclRep | ε
-		// lookAhead is to check that this is a fucntion, not a variable decleration
-		
-		if (accept(TokenClass.INT, TokenClass.CHAR, TokenClass.VOID, TokenClass.STRUCT) && lookAhead(2).tokenClass == TokenClass.LSBR) {
+		// check here is to check that this is a variable decleration rather than a
+		// function declaration
+		if (accept(TokenClass.INT, TokenClass.CHAR, TokenClass.VOID, TokenClass.STRUCT)
+				&& lookAhead(2).tokenClass != TokenClass.LPAR) {
 
 			System.out.println("pvrRep if");
 			parseVarDecl();
@@ -263,11 +264,15 @@ public class Parser {
 
 	private void parseStmt() {
 		/*
-		 * stmt ::= block | "while" "(" exp ")" stmt # while loop | "if" "(" exp ")"
-		 * stmt maybeElse # if then else | "return" maybeExp ";" # return | exp (assign
-		 * | ε) ";" # assignment vs expression statement, e.g. a function call
+		 * stmt ::= block 
+		 * | "while" "(" exp ")" stmt # while loop 
+		 * | "if" "(" exp ")" stmt maybeElse # if then else
+		 * | "return" maybeExp ";" # return 
+		 * | exp (assign | ε) ";" # assignment vs expression statement, e.g. a function call
 		 */
 		if (accept(TokenClass.LBRA)) {
+
+			System.out.println("going to parse block");
 			parseBlock();
 		} else if (accept(TokenClass.WHILE)) {
 			expect(TokenClass.WHILE);
@@ -287,13 +292,18 @@ public class Parser {
 			parseMaybeExp();
 			expect(TokenClass.SC);
 		} else {
+			System.out.println("Going into assignment, as we should..");
 			parseExp();
+			System.out.println("Left parseExp");
+			
 			parseMaybeAssign();
+			expect(TokenClass.SC);
 		}
 
 	}
 
 	private void parseMaybeAssign() {
+		//needs to be going here, but it doesn't
 		// (assign | ε)
 		if (accept(TokenClass.ASSIGN)) {
 			// assign :: "=" exp
@@ -342,9 +352,10 @@ public class Parser {
 
 		// binaryOp can just become NoOpExp, so lets just send ourselves there
 		parseBinaryOp();
+		System.out.println("parsed binary Op");
 
 		// or maybe try-except programming...?
-		error();// ?
+		//error();// ?
 
 	}
 
@@ -355,15 +366,20 @@ public class Parser {
 		 * typecast
 		 */
 		// well we have ambiguity
+		System.out.println(token.tokenClass.toString() + "," + token.position.toString());
+
 		if (accept(TokenClass.LPAR)) {
 			expect(TokenClass.LPAR);
 			parseExp();
 			expect(TokenClass.RPAR);
 		} else if (accept(TokenClass.IDENTIFIER)) {
 			if (lookAhead(1).tokenClass == TokenClass.LPAR) {
+				System.out.println("going to Funcall");
 				parseFunCall();
+			} else {
+				expect(TokenClass.IDENTIFIER);
+				System.out.println("After eating ident:"+token.tokenClass.toString() + "," + token.position.toString());
 			}
-			expect(TokenClass.IDENTIFIER);
 		} else if (accept(TokenClass.INT_LITERAL)) {
 			expect(TokenClass.INT_LITERAL);
 		} else if (accept(TokenClass.CHAR_LITERAL)) {
@@ -384,6 +400,7 @@ public class Parser {
 			// nonterminal for those
 			parseArrayOrFieldAccess();
 		}
+		System.out.println("leaving exp");
 
 	}
 
@@ -446,13 +463,13 @@ public class Parser {
 		expect(TokenClass.IDENTIFIER);
 		expect(TokenClass.LPAR);
 		parseMaybeArgsCloseBrace();
+
+		expect(TokenClass.RPAR);
 	}
 
 	private void parseMaybeArgsCloseBrace() {
-		// maybeArgs ::= exp extraArg |ε
-		// only ever called from funCall, so our follow set is ")"
+		// maybeArgs ::= exp extraArg ε |ε
 		if (accept(TokenClass.RPAR)) {
-			return;
 		} else {
 			parseExp();
 			parseExtraArg();
@@ -478,7 +495,7 @@ public class Parser {
 			parseFieldAccess();
 		}
 
-		error();// ?
+		error(TokenClass.LSBR, TokenClass.DOT);
 	}
 
 	private void parseArrayAccess() {

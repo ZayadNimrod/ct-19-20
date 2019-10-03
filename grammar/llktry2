@@ -1,0 +1,57 @@
+# #  comment
+# () grouping
+# [] optional
+# *  zero or more
+# +  one or more
+# |  alternative
+
+
+program    ::= (include)* (structdecl)* (vardecl)* (fundecl)* varsThenFuncs  EOF
+
+include    ::= "#include" STRING_LITERAL
+
+structdecl ::= structtype "{" (vardecl)+ "}" ";"    # structure declaration
+
+vardecl    ::= nameDecl (normalVarDec | arrayDecl)  
+normalVarDecl ::= ";" 					 # normal declaration, e.g. int a;
+arrayDecl 	::= "[" INT_LITERAL "]" ";"	 # array declaration, e.g. int a[2];
+
+
+fundecl    ::= nameDecl "(" params ")" block    # function declaration
+
+type       ::= ("int" | "char" | "void" | structtype) ["*"]
+structtype ::= "struct" IDENT
+
+params     ::= [ nameDecl ("," nameDecl)* ]
+
+nameDecl   ::= type IDENT
+
+
+stmt       ::= block
+             | "while" "(" exp ")" stmt              # while loop
+             | "if" "(" exp ")" stmt ["else" stmt]   # if then else
+             | "return" [exp] ";"                    # return
+             | exp assignmentOrExpressionCont        # assignment, or  expression statement, e.g. a function call
+             
+assignmentOrExpressionCont ::= assignmentCont | expressionCont
+assignmentCont ::= "=" exp ";"
+expressionCont ::= ";"
+
+block      ::= "{" (vardecl)* (stmt)* "}"
+
+exp        ::= "(" exp ")"
+             | (IDENT | INT_LITERAL)
+             | "-" exp
+             | CHAR_LITERAL
+             | STRING_LITERAL
+             | exp (">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" | "&&") exp  # binary operators
+             | arrayaccess | fieldaccess | valueat | funcall | sizeof | typecast
+
+funcall      ::= IDENT "(" [ exp ("," exp)* ] ")"
+arrayaccess  ::= exp "[" exp "]"                  # array access
+fieldaccess  ::= exp "." IDENT                    # structure field member access
+valueat      ::= "*" exp                          # Value at operator (pointer indirection)
+sizeof       ::= "sizeof" "(" type ")"            # size of type
+typecast     ::= "(" type ")" exp                 # type casting
+
+

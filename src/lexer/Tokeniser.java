@@ -256,7 +256,7 @@ public class Tokeniser {
 				if (Character.isDigit(scanner.peek())) {
 					lit += scanner.peek();
 					scanner.next();
-				} else if (Character.isAlphabetic(scanner.peek())) {
+				} else if(Character.isAlphabetic(scanner.peek())) {
 					// i.e we have an identifier like 247aday
 					error(c, line, column);
 					return new Token(TokenClass.INVALID, line, column);
@@ -328,6 +328,7 @@ public class Tokeniser {
 				return new Token(TokenClass.CHAR, line, column);
 			case ("if"):
 				return new Token(TokenClass.IF, line, column);
+
 			case ("else"):
 				return new Token(TokenClass.ELSE, line, column);
 			case ("while"):
