@@ -57,6 +57,7 @@ public class Parser {
 
 		error++;
 		lastErrorToken = token;
+		int a = 1/0;
 	}
 
 	/*
@@ -149,6 +150,7 @@ public class Parser {
 		parseVarDecl();
 		parseVarDeclRep();
 		expect(TokenClass.RBRA);
+		System.out.println("Struct decl SC");
 		expect(TokenClass.SC);
 	}
 
@@ -171,10 +173,15 @@ public class Parser {
 		parseType();
 		expect(TokenClass.IDENTIFIER);
 		if (accept(TokenClass.SC)) {
-			nextToken();
+
+			System.out.println("var decl SC");
+			expect(TokenClass.SC);
 			return;
 		} else {
 			parseArrayDecl();
+
+			System.out.println("Var decl SC");
+			expect(TokenClass.SC);
 		}
 	}
 
@@ -282,10 +289,14 @@ public class Parser {
 		} else if (accept(TokenClass.RETURN)) {
 			expect(TokenClass.RETURN);
 			parseMaybeExp();
+
+			System.out.println("stmt SC");
 			expect(TokenClass.SC);
 		} else {
 			parseExp();
 			parseMaybeAssign();
+
+			System.out.println("STMT SC");
 			expect(TokenClass.SC);
 		}
 
@@ -340,14 +351,20 @@ public class Parser {
 		/// the above also has the same start set...
 
 		// binaryOp can just become NoOpExp, so lets just send ourselves there
-		
-		//the scoreboard has an issue where we fail to parse an expression, so we enter an infinte recursion loop and crasyh
+
+		// the scoreboard has an issue where we fail to parse an expression, so we enter
+		// an infinte recursion loop and crasyh
 		// and this is different from a "normal" failure to parse
-		// I'm going to need to sort out the grammar, but for now, this should suffice for most cases
-		try {		
-		parseBinaryOp();
-		}catch(StackOverflowError e) {
+		// I'm going to need to sort out the grammar, but for now, this should suffice
+		// for most cases
+		try {
+			// TODO: for better debug, maybe get our current position?
+
+			parseBinaryOp();
+		} catch (StackOverflowError e) {
+			System.out.println("Failed to parse Expression\n");
 			error();
+			nextToken();
 		}
 
 	}
@@ -359,20 +376,16 @@ public class Parser {
 		 * typecast
 		 */
 		// well we have ambiguity
+		//System.out.println("InNoOpExp: " + token.toString());
+
 		if (accept(TokenClass.LPAR)) {
-			if (Arrays.asList(new TokenClass[]{TokenClass.INT, TokenClass.CHAR, TokenClass.VOID, TokenClass.STRUCT}).contains(lookAhead(1).tokenClass)) {
+			if (Arrays.asList(new TokenClass[] { TokenClass.INT, TokenClass.CHAR, TokenClass.VOID, TokenClass.STRUCT })
+					.contains(lookAhead(1).tokenClass)) {
 				parseTypeCast();
 			} else {
 				expect(TokenClass.LPAR);
 				parseExp();
 				expect(TokenClass.RPAR);
-			}
-		} else if (accept(TokenClass.IDENTIFIER)) {
-			if (lookAhead(1).tokenClass == TokenClass.LPAR) {
-				parseFunCall();
-			} else {
-				expect(TokenClass.IDENTIFIER);
-				
 			}
 		} else if (accept(TokenClass.INT_LITERAL)) {
 			expect(TokenClass.INT_LITERAL);
@@ -387,13 +400,17 @@ public class Parser {
 			parseValueAt();
 		} else if (accept(TokenClass.SIZEOF)) {
 			parseSizeOf();
-		} else if (accept(TokenClass.LPAR)) {
-
-		} else {
-			// arrayAcces and FieldAccess have the same start set, so lets make a
-			// nonterminal for those
-			parseArrayOrFieldAccess();
+		} else if (accept(TokenClass.IDENTIFIER)) {
+			if (lookAhead(1).tokenClass == TokenClass.LPAR) {
+				parseFunCall();
+			} else {
+				expect(TokenClass.IDENTIFIER);
+			}
 		}
+		// arrayAcces and FieldAccess have the same start set, so lets make a
+		// nonterminal for those
+		//that start set is exp, so to stop the exp being eaten up first, every Exp must have a check for being a field or array access
+		parseArrayOrFieldAccessOrNothing();
 
 	}
 
@@ -478,16 +495,15 @@ public class Parser {
 		}
 	}
 
-	private void parseArrayOrFieldAccess() {
-		parseExp();
-
+	private void parseArrayOrFieldAccessOrNothing() {
+		
 		if (accept(TokenClass.LSBR)) {
 			parseArrayAccess();
 		} else if (accept(TokenClass.DOT)) {
 			parseFieldAccess();
 		}
 
-		error(TokenClass.LSBR, TokenClass.DOT);
+		// error(TokenClass.LSBR, TokenClass.DOT);
 	}
 
 	private void parseArrayAccess() {
