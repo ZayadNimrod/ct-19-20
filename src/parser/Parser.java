@@ -340,10 +340,15 @@ public class Parser {
 		/// the above also has the same start set...
 
 		// binaryOp can just become NoOpExp, so lets just send ourselves there
+		
+		//the scoreboard has an issue where we fail to parse an expression, so we enter an infinte recursion loop and crasyh
+		// and this is different from a "normal" failure to parse
+		// I'm going to need to sort out the grammar, but for now, this should suffice for most cases
+		try {		
 		parseBinaryOp();
-
-		// or maybe try-except programming...?
-		// error();// ?
+		}catch(StackOverflowError e) {
+			error();
+		}
 
 	}
 
