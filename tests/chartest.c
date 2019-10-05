@@ -4,9 +4,17 @@
 void main() {
 	
 	//should pass
-	char escape = '\n';
-	char normal = 'a';
-	char empty ='';
+	char escape;
+	char normal;
+	char empty;
+	
+	escape ='\n';
+	
+	
+	normal = 'a';
+	
+	
+	empty ='';
 	
 	
 	
@@ -15,6 +23,6 @@ void main() {
 	print_s((char*) "");
 
 	//should throw error
-	print_s((char*) 'Hello there!');
+	//print_s((char*) 'Hello there!');
  
 }

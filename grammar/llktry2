@@ -39,19 +39,54 @@ expressionCont ::= ";"
 
 block      ::= "{" (vardecl)* (stmt)* "}"
 
-exp        ::= "(" exp ")"
-             | (IDENT | INT_LITERAL)
-             | "-" exp
-             | CHAR_LITERAL
-             | STRING_LITERAL
-             | exp (">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" | "&&") exp  # binary operators
-             | arrayaccess | fieldaccess | valueat | funcall | sizeof | typecast
+exp        ::= bracketsOrTypeCast arrayOrFieldAccessOrBinaryOps
+             | identOrFunCall arrayOrFieldAccessOrBinaryOps
+             | INT_LITERAL arrayOrFieldAccessOrBinaryOps
+             | "-" exp arrayOrFieldAccessOrBinaryOps
+             | CHAR_LITERAL arrayOrFieldAccessOrBinaryOps
+             | STRING_LITERAL arrayOrFieldAccessOrBinaryOps
+             | valueat arrayOrFieldAccessOrBinaryOps
+             | funcall arrayOrFieldAccessOrBinaryOps
+             | sizeof arrayOrFieldAccessOrBinaryOps
+             | typecast arrayOrFieldAccessOrBinaryOps
+             
+             
+arrayOrFieldAccessOrBinaryOps :: = (arrayAccess | fieldAccess | binaryOps | ε)
 
-funcall      ::= IDENT "(" [ exp ("," exp)* ] ")"
-arrayaccess  ::= exp "[" exp "]"                  # array access
-fieldaccess  ::= exp "." IDENT                    # structure field member access
+
+#precedence of operators taken from https://en.cppreference.com/w/c/language/operator_precedence
+
+binaryOps := ( "||" |ε ) binaryOps2
+
+binaryOps2 := ("&&" | ε ) binaryOps3
+
+binaryOps3 := ( "!=" | "==" | ε) binaryOps4
+
+binaryOps4 := (">" | "<" | ">=" | "<=" | ε) binaryOps5
+
+binaryOps5 := ( "+" | "-" | ε ) binaryOps6
+
+binaryOps6 := ( "/" | "*" | "%" | ε ) exp
+
+
+identOrFunCall := IDENT (funCall | ε)
+
+
+funcall      ::= "(" maybeArgs ")"
+
+maybeArgs 	 ::= exp extraArg |ε 
+
+extrArg 	 ::= "," exp extraArg | ε
+
+arrayaccess  ::=  "[" exp "]"                  # array access
+fieldaccess  ::= "." IDENT                    # structure field member access
 valueat      ::= "*" exp                          # Value at operator (pointer indirection)
 sizeof       ::= "sizeof" "(" type ")"            # size of type
-typecast     ::= "(" type ")" exp                 # type casting
+
+bracketsOrtypeCast := "(" (brackets | typeCast)
+
+brackets := exp ")"
+
+typecast     ::= type ")" exp                 # type casting
 
 
