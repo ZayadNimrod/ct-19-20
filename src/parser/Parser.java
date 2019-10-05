@@ -54,10 +54,8 @@ public class Parser {
 			sep = "|";
 		}
 		System.out.println("Parsing error: expected (" + sb + ") found (" + token + ") at " + token.position);
-
 		error++;
 		lastErrorToken = token;
-		int a = 1/0;
 	}
 
 	/*
