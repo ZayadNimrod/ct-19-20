@@ -287,14 +287,10 @@ public class Parser {
 		} else if (accept(TokenClass.RETURN)) {
 			expect(TokenClass.RETURN);
 			parseMaybeExp();
-
-			System.out.println("stmt SC");
 			expect(TokenClass.SC);
 		} else {
 			parseExp();
 			parseMaybeAssign();
-
-			System.out.println("STMT SC");
 			expect(TokenClass.SC);
 		}
 

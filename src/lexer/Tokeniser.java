@@ -233,8 +233,11 @@ public class Tokeniser {
 						lit += '\f';
 					} else if (e == '0') {
 						lit += '\0';
+					} else if (e == '\'') {
+						lit += '\'';
 					} else {
 						// unknown escape character. report an error
+						System.out.println("error from string literal escapes:"+e);
 						error(c, line, column);
 						return new Token(TokenClass.INVALID, line, column);
 					}
@@ -275,7 +278,7 @@ public class Tokeniser {
 				return new Token(TokenClass.CHAR_LITERAL, "", line, column);
 			} else {
 
-				if (scanner.peek() == '\'') {
+				if (scanner.peek() == '\'' && a != '\\') {
 					scanner.next();
 					return new Token(TokenClass.CHAR_LITERAL, Character.toString(a), line, column);
 				} else if (a == '\\') {
@@ -305,8 +308,13 @@ public class Tokeniser {
 					if (e == '\0') {
 						return new Token(TokenClass.CHAR_LITERAL, "\0", line, column);
 					}
+					if (e == '\"') {
+						return new Token(TokenClass.CHAR_LITERAL, "\"", line, column);
+					}
 
 				}
+				
+				
 			}
 
 		}
