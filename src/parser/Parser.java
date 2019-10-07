@@ -386,12 +386,14 @@ public class Parser {
 				parseSizeOf();
 				parseArrayOrFieldAccessOrBinaryOps();
 			} else {
-				error();
+				error(TokenClass.IDENTIFIER,TokenClass.INT_LITERAL,TokenClass.CHAR_LITERAL,TokenClass.STRING_LITERAL,TokenClass.LPAR,TokenClass.MINUS,TokenClass.ASTERIX,TokenClass.SIZEOF);
+				nextToken();
 			}
 
 		} catch (StackOverflowError e) {
 			System.out.println("Failed to parse Expression due to infinite recursion\n");
 			error();
+			
 			nextToken();
 		}
 
