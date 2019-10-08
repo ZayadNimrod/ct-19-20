@@ -257,6 +257,9 @@ public class Parser {
 		if (accept(TokenClass.RBRA)) {
 			// do nothing
 			return;
+		}else if(accept(TokenClass.EOF)) {
+			//we've been crashing after this recurses infitely after hitting EOF
+			return;
 		} else {
 			parseStmt();
 			parseStmtRep();
