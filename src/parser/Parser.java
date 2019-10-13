@@ -1,11 +1,14 @@
 package parser;
 
+import ast.*;
+
 import lexer.Token;
 import lexer.Tokeniser;
 import lexer.Token.TokenClass;
 
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 /**
@@ -153,7 +156,7 @@ public class Parser {
 	}
 
 	private void parseVarDeclRep() {
-		// TODO: figure out when to stop recursing, with accepts
+		// 
 		// vardeclRep ::= vardecl vardeclRep | ε
 		// check here is to check that this is a variable decleration rather than a
 		// function declaration
@@ -348,8 +351,8 @@ public class Parser {
 		// I'm going to need to sort out the grammar, but for now, this should suffice
 		// for most cases
 		try {
-			// TODO: for better debug, maybe get our current position?
-			// dunno if I'll need this anymore, but it's better to be safe I guess
+			
+			// dunno if I'll need this try-catch anymore, but it's better to be safe I guess
 			/*
 			 * exp ::= "(" exp ")" arrayOrFieldAccessOrBinaryOps 
 			 * | identOrFunCall arrayOrFieldAccessOrBinaryOps 
@@ -573,4 +576,5 @@ public class Parser {
 		
 		parseExp();
 	}
+
 }
