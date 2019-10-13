@@ -1,10 +1,10 @@
 package ast;
 
 public class SizeOfExpr extends Expr {
-	public final Expr struct;
+	public final Expr expr;
 
-	public SizeOfExpr(Expr s) {
-		struct = s;
+	public SizeOfExpr(Expr e) {
+		expr = e;
 	}
 
 	public <T> T accept(ASTVisitor<T> v) {

@@ -4,11 +4,11 @@ import java.util.*;
 
 public class Block extends Stmt {
 
-	public final List<VarDecl> expr;
+	public final List<VarDecl> vars;
 	public final List<Stmt> code;
 
 	public Block(List<VarDecl> e, List<Stmt> c) {
-		expr = e;
+		vars = e;
 		code = c;
 	}
 
