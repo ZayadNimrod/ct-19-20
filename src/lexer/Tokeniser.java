@@ -255,11 +255,11 @@ public class Tokeniser {
 			// int literal
 			String lit = "";
 			// while (Character.isDigit(scanner.peek())) {
-			while (!Character.isWhitespace(scanner.peek())) {
-				if (Character.isDigit(scanner.peek())) {
-					lit += scanner.peek();
-					scanner.next();
-				} else if(Character.isAlphabetic(scanner.peek())) {
+			while (!Character.isWhitespace(c)) {
+				if (Character.isDigit(c)) {
+					lit += c;
+					c = scanner.next();
+				} else if(Character.isAlphabetic(c)) {
 					// i.e we have an identifier like 247aday
 					error(c, line, column);
 					return new Token(TokenClass.INVALID, line, column);
