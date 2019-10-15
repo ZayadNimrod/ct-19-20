@@ -254,12 +254,13 @@ public class Tokeniser {
 		if (Character.isDigit(c)) {
 			// int literal
 			String lit = "";
+			lit+=c;
 			// while (Character.isDigit(scanner.peek())) {
-			while (!Character.isWhitespace(c)) {
-				if (Character.isDigit(c)) {
-					lit += c;
+			while (!Character.isWhitespace(scanner.peek())) {
+				if (Character.isDigit(scanner.peek())) {
+					lit += scanner.peek();
 					c = scanner.next();
-				} else if(Character.isAlphabetic(c)) {
+				} else if(Character.isAlphabetic(scanner.peek())) {
 					// i.e we have an identifier like 247aday
 					error(c, line, column);
 					return new Token(TokenClass.INVALID, line, column);

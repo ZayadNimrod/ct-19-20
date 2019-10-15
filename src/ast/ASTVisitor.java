@@ -49,6 +49,5 @@ public interface ASTVisitor<T> {
 
 	public T visitBlock(Block b);
 
-	// to complete ... (should have one visit method for each concrete AST node
-	// class)
+	public T visitValueAtExpr(ValueAtExpr va);
 }

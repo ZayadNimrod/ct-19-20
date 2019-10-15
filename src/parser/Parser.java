@@ -11,6 +11,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+import javax.xml.crypto.Data;
+
 /**
  * @author cdubach
  */
@@ -28,11 +30,11 @@ public class Parser {
 		this.tokeniser = tokeniser;
 	}
 
-	public void parse() {
+	public Program parse() {
 		// get the first token
 		nextToken();
 
-		parseProgram();
+		return parseProgram();
 	}
 
 	public int getErrorCount() {
@@ -118,12 +120,13 @@ public class Parser {
 		return result;
 	}
 
-	private void parseProgram() {
+	private Program parseProgram() {
 		parseIncludes();
-		parseStructDeclRep();
-		parseVarDeclRep();
-		parseFunDeclRep();
+		List<StructTypeDecl> structs = parseStructDeclRep();
+		List<VarDecl> vars = parseVarDeclRep();
+		List<FunDecl> funs = parseFunDeclRep();
 		expect(TokenClass.EOF);
+		return new Program(structs, vars, funs);
 	}
 
 	// includes are ignored, so does not need to return an AST node
@@ -136,445 +139,578 @@ public class Parser {
 
 	}
 
-	private void parseStructDeclRep() {
+	private List<StructTypeDecl> parseStructDeclRep() {
+		List<StructTypeDecl> ret = new LinkedList<StructTypeDecl>();
 		if (accept(TokenClass.STRUCT)) {
-			parseStructDecl();
-			parseStructDeclRep();
+			ret.add(parseStructDecl());
+			ret.addAll(parseStructDeclRep());
 		}
+		return ret;
 	}
 
-	private void parseStructDecl() {
+	private StructTypeDecl parseStructDecl() {
 		// structtype "{" vardecl vardeclRep "}" ";"
-		parseStructType();
+		StructType structType = parseStructType();
 		expect(TokenClass.LBRA);
 
-		parseVarDecl();
-		parseVarDeclRep();
+		List<VarDecl> varDecls = new LinkedList<VarDecl>();
+		varDecls.add(parseVarDecl());
+		varDecls.addAll(parseVarDeclRep());
+
 		expect(TokenClass.RBRA);
-		System.out.println("Struct decl SC");
 		expect(TokenClass.SC);
+
+		return new StructTypeDecl(structType, varDecls);
 	}
 
-	private void parseVarDeclRep() {
-		// 
+	private List<VarDecl> parseVarDeclRep() {
+		//
 		// vardeclRep ::= vardecl vardeclRep | ε
 		// check here is to check that this is a variable decleration rather than a
 		// function declaration
-		if (accept(TokenClass.INT, TokenClass.CHAR, TokenClass.VOID, TokenClass.STRUCT)
-				&& lookAhead(2).tokenClass != TokenClass.LPAR) {
-
-			parseVarDecl();
-			parseVarDeclRep();
+		List<VarDecl> ret = new LinkedList<VarDecl>();
+		//this accept crashes sometimes?
+		//System.out.print(token);
+		if (accept(TokenClass.INT, TokenClass.CHAR, TokenClass.VOID, TokenClass.STRUCT)) {
+			//System.out.print("L");
+			Token look = lookAhead(2);
+			if (look != null) {
+				//System.out.print("N");
+				//should this be LPAR
+				if (look.tokenClass != TokenClass.LPAR) {
+					ret.add(parseVarDecl());
+					ret.addAll(parseVarDeclRep());
+				}
+			}
 		}
+		return ret;
 
 	}
 
-	private void parseVarDecl() {
+	private VarDecl parseVarDecl() {
 		// vardecl ::= type IDENT (ε | arrayDecl)";"
-		parseType();
+		Type type = parseType();
+		String varname = token.data;
 		expect(TokenClass.IDENTIFIER);
 		if (accept(TokenClass.SC)) {
-
-			System.out.println("var decl SC");
 			expect(TokenClass.SC);
-			return;
 		} else {
-			parseArrayDecl();
-
-			System.out.println("Var decl SC");
+			int len = parseArrayDecl();
 			expect(TokenClass.SC);
+			type = new ArrayType(type, len);
 		}
+
+		return new VarDecl(type, varname);
 	}
 
-	private void parseArrayDecl() {
+	private int parseArrayDecl() {
 		// "[" INT_LITERAL "]"
+		int ret = 0;
 		expect(TokenClass.LSBR);
+		ret = Integer.valueOf(token.data);
 		expect(TokenClass.INT_LITERAL);
 		expect(TokenClass.RSBR);
+		return ret;
 	}
 
-	private void parseFunDeclRep() {
+	private List<FunDecl> parseFunDeclRep() {
 		// funcdeclRep::= functdecl funcdeclRep | ε
+
+		List<FunDecl> ret = new LinkedList<FunDecl>();
 		if (accept(TokenClass.INT, TokenClass.CHAR, TokenClass.VOID, TokenClass.STRUCT)) {
-			parseFunDecl();
-			parseFunDeclRep();
+			ret.add(parseFunDecl());
+			ret.addAll(parseFunDeclRep());
 		}
+
+		return ret;
 	}
 
-	private void parseFunDecl() {
+	private FunDecl parseFunDecl() {
 		// fundecl ::= type IDENT "(" params ")" block # function declaration
-		parseType();
+		Type type = parseType();
+		String name = token.data;
 		expect(TokenClass.IDENTIFIER);
 		expect(TokenClass.LPAR);
-		parseParams();
+		List<VarDecl> params = parseParams();
 		expect(TokenClass.RPAR);
-		parseBlock();
+		Block block = parseBlock();
+		return new FunDecl(type, name, params, block);
 	}
 
-	private void parseType() {
+	private Type parseType() {
 		// ("int" | "char" | "void" | structtype) optionalStar
-		if (accept(TokenClass.INT, TokenClass.CHAR, TokenClass.VOID)) {
+		Type ret = null;
+		if (accept(TokenClass.INT)) {
 			nextToken();
+			ret = BaseType.INT;
+		} else if (accept(TokenClass.CHAR)) {
+			nextToken();
+			ret = BaseType.CHAR;
+		} else if (accept(TokenClass.VOID)) {
+			nextToken();
+			ret = BaseType.VOID;
 		} else {
 			// parse structType, else we fail
-			parseStructType();
+			ret = parseStructType();
 		}
 
 		if (accept(TokenClass.ASTERIX)) {
-			nextToken();
+			// this is a pointer
+			ret = new PointerType(ret);
+			expect(TokenClass.ASTERIX);
 		}
-		// not fussed if the star is there or not
+		return ret;
 
 	}
 
-	private void parseStructType() {
+	private StructType parseStructType() {
 		// "struct" IDENT
 		expect(TokenClass.STRUCT);
+		StructType ret = new StructType(token.data);
 		expect(TokenClass.IDENTIFIER);
+		return ret;
 	}
 
-	private void parseParams() {
+	private List<VarDecl> parseParams() {
 		// params ::= type IDENT extraParam | ε
+		List<VarDecl> ret = new LinkedList<VarDecl>();
 		if (accept(TokenClass.INT, TokenClass.CHAR, TokenClass.VOID, TokenClass.STRUCT)) {
-			parseType();
+			Type t = parseType();
+			String id = token.data;
 			expect(TokenClass.IDENTIFIER);
-			parseExtraParam();
+			ret.add(new VarDecl(t, id));
+			ret.addAll(parseExtraParam());
 		}
+		return ret;
 	}
 
-	private void parseExtraParam() {
+	private List<VarDecl> parseExtraParam() {
 		// extraParam ::= "," type IDENT extraParam | ε
+		List<VarDecl> ret = new LinkedList<VarDecl>();
 		if (accept(TokenClass.COMMA)) {
 			expect(TokenClass.COMMA);
-			parseType();
+			Type t = parseType();
+			String id = token.data;
 			expect(TokenClass.IDENTIFIER);
-			parseExtraParam();
+			ret.add(new VarDecl(t, id));
+			ret.addAll(parseExtraParam());
 		}
+		return ret;
 	}
 
-	private void parseStmtRep() {
+	private List<Stmt> parseStmtRep() {
 		// stmtRep ::= stmt stmtRep | ε
 		// follow set of stmtRep is just "}", since it is right-recursive (is that a
 		// term?) and only called from block, so check for that
-
+		List<Stmt> ret = new LinkedList<Stmt>();
 		if (accept(TokenClass.RBRA)) {
 			// do nothing
-			return;
-		}else if(accept(TokenClass.EOF)) {
-			//we've been crashing after this recurses infitely after hitting EOF
-			return;
+			return ret;
+		} else if (accept(TokenClass.EOF)) {
+			// we've been crashing after this recurses infinitely after hitting EOF
+			return ret;
 		} else {
-			parseStmt();
-			parseStmtRep();
+			ret.add(parseStmt());
+			ret.addAll(parseStmtRep());
 		}
+		return ret;
 	}
 
-	private void parseStmt() {
+	private Stmt parseStmt() {
 		/*
-		 * stmt ::= block 
-		 * | "while" "(" exp ")" stmt # while loop 
-		 * | "if" "(" exp ")" stmt maybeElse # if then else | "return" maybeExp ";" # return 
-		 * | exp (assign | ε) ";" # assignment vs expression statement, e.g. a function call
+		 * stmt ::= block | "while" "(" exp ")" stmt # while loop | "if" "(" exp ")"
+		 * stmt maybeElse # if then else | "return" maybeExp ";" # return | exp (assign
+		 * | ε) ";" # assignment vs expression statement, e.g. a function call
 		 */
+		Stmt ret = null;
 		if (accept(TokenClass.LBRA)) {
-			parseBlock();
+			ret = parseBlock();
 		} else if (accept(TokenClass.WHILE)) {
 			expect(TokenClass.WHILE);
 			expect(TokenClass.LPAR);
-			parseExp();
+			Expr e = parseExp();
 			expect(TokenClass.RPAR);
-			parseStmt();
+			Stmt c = parseStmt();
+			ret = new While(e, c);
 		} else if (accept(TokenClass.IF)) {
 			expect(TokenClass.IF);
 			expect(TokenClass.LPAR);
-			parseExp();
+			Expr ex = parseExp();
 			expect(TokenClass.RPAR);
-			parseStmt();
-			parseMaybeElse();
+			Stmt code = parseStmt();
+			Stmt el = parseMaybeElse();
+			ret = new If(ex, code, el);
 		} else if (accept(TokenClass.RETURN)) {
 			expect(TokenClass.RETURN);
-			parseMaybeExp();
-
-			System.out.println("stmt SC");
+			ret = new Return(parseMaybeExp());
 			expect(TokenClass.SC);
 		} else {
-			parseExp();
-			parseMaybeAssign();
-
-			// System.out.print("STMT SC");
+			Expr e = parseExp();
+			Expr o = parseMaybeAssign();
 			expect(TokenClass.SC);
+			if (o == null) {
+				ret = new ExprStmt(e);
+			} else {
+				ret = new Assign(e, o);
+			}
 		}
+		return ret;
 
 	}
 
-	private void parseMaybeAssign() {
+	private Expr parseMaybeAssign() {
 		// needs to be going here, but it doesn't
 		// (assign | ε)
 		if (accept(TokenClass.ASSIGN)) {
 			// assign :: "=" exp
 			expect(TokenClass.ASSIGN);
-			parseExp();
+			return parseExp();
 		}
+		return null;
 	}
 
-	private void parseMaybeElse() {
+	private Stmt parseMaybeElse() {
 		// maybeElse ::= "else" stmt | ε
 		if (accept(TokenClass.ELSE)) {
 			expect(TokenClass.ELSE);
-			parseStmt();
+			return parseStmt();
 		}
+		return null;
 	}
 
-	private void parseMaybeExp() {
+	private Expr parseMaybeExp() {
 		// maybeExp ::= exp | ε
 		// only place this is called from is stmt, our follow set is ";"
 		if (accept(TokenClass.SC)) {
-			return;
+			return null;
 		} else {
-			parseExp();
+			return parseExp();
 		}
 	}
 
-	private void parseBlock() {
+	private Block parseBlock() {
 		// block ::= "{" vardeclRep stmtRep "}"
 		expect(TokenClass.LBRA);
-		parseVarDeclRep();
-		parseStmtRep();
+		List<VarDecl> varDecls = parseVarDeclRep();
+		List<Stmt> code = parseStmtRep();
 		expect(TokenClass.RBRA);
+		return new Block(varDecls, code);
 	}
 
-	private void parseExp() {
+	private Expr parseExp() {
 
 		// the scoreboard has an issue where we fail to parse an expression, so we enter
 		// an infinte recursion loop and crasyh
 		// and this is different from a "normal" failure to parse
-		// I'm going to need to sort out the grammar, but for now, this should suffice
-		// for most cases
 		try {
-			
+
 			// dunno if I'll need this try-catch anymore, but it's better to be safe I guess
-			/*
-			 * exp ::= "(" exp ")" arrayOrFieldAccessOrBinaryOps 
-			 * | identOrFunCall arrayOrFieldAccessOrBinaryOps 
-			 * | INT_LITERAL arrayOrFieldAccessOrBinaryOps 
-			 * | "-" exp arrayOrFieldAccessOrBinaryOps 
-			 * | CHAR_LITERAL  arrayOrFieldAccessOrBinaryOps 
-			 * | STRING_LITERAL arrayOrFieldAccessOrBinaryOps
-			 * | valueat arrayOrFieldAccessOrBinaryOps 
-			 * | funcall arrayOrFieldAccessOrBinaryOps 
-			 * | sizeof arrayOrFieldAccessOrBinaryOps 
-			 * | typecast arrayOrFieldAccessOrBinaryOps
-			 * 
-			 */
+
+			// exp ::= "(" exp ")" arrayOrFieldAccessOrBinaryOps
+			// | identOrFunCall arrayOrFieldAccessOrBinaryOps
+			// | INT_LITERAL arrayOrFieldAccessOrBinaryOps
+			// |"-" exp arrayOrFieldAccessOrBinaryOps
+			// | CHAR_LITERAL arrayOrFieldAccessOrBinaryOps
+			// | STRING_LITERAL arrayOrFieldAccessOrBinaryOps
+			// | valueat arrayOrFieldAccessOrBinaryOps
+			// | funcall arrayOrFieldAccessOrBinaryOps
+			// | sizeof arrayOrFieldAccessOrBinaryOps
+			// | typecast arrayOrFieldAccessOrBinaryOps
+			//
+			Expr ret = null;
 			if (accept(TokenClass.IDENTIFIER)) {
-				parseIdentOrFunCall();
-				parseArrayOrFieldAccessOrBinaryOps();
+				ret = parseIdentOrFunCall();
 			} else if (accept(TokenClass.INT_LITERAL)) {
+				ret = new IntLiteral(Integer.parseInt(token.data));
 				expect(TokenClass.INT_LITERAL);
-				parseArrayOrFieldAccessOrBinaryOps();
 			} else if (accept(TokenClass.CHAR_LITERAL)) {
+				ret = new ChrLiteral(token.data.charAt(0));
 				expect(TokenClass.CHAR_LITERAL);
-				parseArrayOrFieldAccessOrBinaryOps();
 			} else if (accept(TokenClass.STRING_LITERAL)) {
+				ret = new StrLiteral(token.data);
 				expect(TokenClass.STRING_LITERAL);
-				parseArrayOrFieldAccessOrBinaryOps();
 			} else if (accept(TokenClass.LPAR)) {
-				parseBracketOrTypeCast();
-				parseArrayOrFieldAccessOrBinaryOps();
+				ret = parseBracketOrTypeCast();
 			} else if (accept(TokenClass.MINUS)) {
 				expect(TokenClass.MINUS);
-				parseExp();
-				parseArrayOrFieldAccessOrBinaryOps();
+				ret = new BinOp(new IntLiteral(0), Op.SUB, parseExp());
 			} else if (accept(TokenClass.ASTERIX)) {
-				parseValueAt();
-				parseArrayOrFieldAccessOrBinaryOps();
+				ret = parseValueAt();
 			} else if (accept(TokenClass.SIZEOF)) {
-				parseSizeOf();
-				parseArrayOrFieldAccessOrBinaryOps();
+				ret = parseSizeOf();
 			} else {
-				error(TokenClass.IDENTIFIER,TokenClass.INT_LITERAL,TokenClass.CHAR_LITERAL,TokenClass.STRING_LITERAL,TokenClass.LPAR,TokenClass.MINUS,TokenClass.ASTERIX,TokenClass.SIZEOF);
+				error(TokenClass.IDENTIFIER, TokenClass.INT_LITERAL, TokenClass.CHAR_LITERAL, TokenClass.STRING_LITERAL,
+						TokenClass.LPAR, TokenClass.MINUS, TokenClass.ASTERIX, TokenClass.SIZEOF);
 				nextToken();
+				return null;// doesn't matter what we return for ther AST since there is a parsing error
 			}
 
+			ret = parseArrayOrFieldAccessOrBinaryOps(ret);
+			return ret;
 		} catch (StackOverflowError e) {
 			System.out.println("Failed to parse Expression due to infinite recursion\n");
 			error();
-			
+
 			nextToken();
+			return null;
 		}
 
 	}
 
-	private void parseValueAt() {
+	private ValueAtExpr parseValueAt() {
 		// valueat ::= "*" exp # Value at operator (pointer indirection)
 		expect(TokenClass.ASTERIX);
-		parseExp();
+		return new ValueAtExpr(parseExp());
 	}
 
-	private void parseIdentOrFunCall() {
+	private Expr parseIdentOrFunCall() {
 		// identOrFunCall := IDENT (funCall | ε)
+		String id = token.data;
 		expect(TokenClass.IDENTIFIER);
 		if (accept(TokenClass.LPAR)) {
-			parseFunCall();
+			List<Expr> args = parseFunCall();
+			return new FunCallExpr(id, args);
 		}
+		return new VarExpr(id);
 	}
 
-	private void parseFunCall() {
+	private List<Expr> parseFunCall() {
 		// funcall ::= "(" maybeArgs ")"
 		expect(TokenClass.LPAR);
-		parseMaybeArgs();
+		List<Expr> args = parseMaybeArgs();
 		expect(TokenClass.RPAR);
+		return args;
 	}
 
-	private void parseMaybeArgs() {
+	private List<Expr> parseMaybeArgs() {
 		// maybeArgs ::= exp extraArg |ε
 		// if we encounter a closing paren, then we have reached the end of the args
+		List<Expr> ret = new LinkedList<Expr>();
 		if (!accept(TokenClass.RPAR)) {
-			parseExp();
-			parseExtraArg();
+			ret.add(parseExp());
+			ret.addAll(parseExtraArg());
 		}
+		return ret;
 	}
 
-	private void parseExtraArg() {
+	private List<Expr> parseExtraArg() {
 		// extrArg ::= "," exp extraArg | ε
+		List<Expr> ret = new LinkedList<Expr>();
 		if (accept(TokenClass.COMMA)) {
 			expect(TokenClass.COMMA);
-			parseExp();
-			parseExtraArg();
+			ret.add(parseExp());
+			ret.addAll(parseExtraArg());
 		}
+		return ret;
 	}
 
-	private void parseSizeOf() {
+	private SizeOfExpr parseSizeOf() {
 		// sizeof ::= "sizeof" "(" type ")" # size of type
 		expect(TokenClass.SIZEOF);
 		expect(TokenClass.LPAR);
-		parseType();
+		SizeOfExpr ret = new SizeOfExpr(parseType());
 		expect(TokenClass.RPAR);
+		return ret;
 	}
 
-	private void parseBracketOrTypeCast() {
+	private Expr parseBracketOrTypeCast() {
 		// bracketsOrtypeCast := "(" ( brackets | typeCast)
 		expect(TokenClass.LPAR);
 		if (accept(TokenClass.INT, TokenClass.CHAR, TokenClass.VOID, TokenClass.STRUCT)) {
-			parseTypeCast();
+			return parseTypeCast();
 		} else {
-			parseBrackets();
+			return parseBrackets();
 		}
 	}
 
-	private void parseBrackets() {
+	private Expr parseBrackets() {
 		// brackets := exp ")"
-		parseExp();
+		Expr ret = parseExp();
 		expect(TokenClass.RPAR);
-
+		return ret;
 	}
 
-	private void parseTypeCast() {
+	private TypecastExpr parseTypeCast() {
 		// typecast ::= type ")" exp # type casting
-		parseType();
+		Type t = parseType();
 		expect(TokenClass.RPAR);
-		parseExp();
+		Expr e = parseExp();
+		return new TypecastExpr(t, e);
 	}
 
-	private void parseArrayOrFieldAccessOrBinaryOps() {
+	private Expr parseArrayOrFieldAccessOrBinaryOps(Expr previous) {
 		// arrayOrFieldAccessOrBinaryOps :: = (arrayAccess | fieldAccess | binaryOps |
 		// ε)
 		if (accept(TokenClass.LSBR)) {
-			parseArrayAccess();
+			return parseArrayAccess(previous);
 		} else if (accept(TokenClass.DOT)) {
-			parseFieldAccess();
+			return parseFieldAccess(previous);
 		} else if (accept(TokenClass.GT, TokenClass.LT, TokenClass.GE, TokenClass.LE, TokenClass.NE, TokenClass.EQ,
 				TokenClass.PLUS, TokenClass.MINUS, TokenClass.DIV, TokenClass.ASTERIX, TokenClass.REM, TokenClass.OR,
 				TokenClass.AND)) {
 			// ">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" |
 			// "&&"
-			parseBinaryOps();
+			return parseBinaryOps(previous);
 		}
+		return previous;
 	}
 
-	private void parseArrayAccess() {
+	private ArrayAccessExpr parseArrayAccess(Expr array) {
 		// arrayaccess ::= "[" exp "]" # array access
 		expect(TokenClass.LSBR);
-		parseExp();
+		Expr idx = parseExp();
 		expect(TokenClass.RSBR);
+		return new ArrayAccessExpr(array, idx);
 	}
 
-	private void parseFieldAccess() {
+	private FieldAccessExpr parseFieldAccess(Expr struct) {
 		// fieldaccess ::= "." IDENT # structure field member access
 		expect(TokenClass.DOT);
+		String id = token.data;
 		expect(TokenClass.IDENTIFIER);
+		return new FieldAccessExpr(struct, id);
 	}
 
-	private void parseBinaryOps() {
-		//binaryOps := ( "||" |ε ) binaryOps2
+	private Expr parseBinaryOps(Expr left) {
+		// binaryOps := ( "||" |ε ) binaryOps2
+		boolean isAnOr = false;
+		if (accept(TokenClass.OR)) {
+			expect(TokenClass.OR);
+			isAnOr = true;
+		}
 
-
-
-
-
-
-
-
-		if(accept(TokenClass.OR)) {expect(TokenClass.OR);}
-		parseBinaryOps2();
+		Expr right = parseBinaryOps2(left);
+		if (isAnOr) {
+			return new BinOp(left, Op.OR, right);
+		} else {
+			return right;
+		}
 	}
 
-	private void parseBinaryOps2() {
+	private Expr parseBinaryOps2(Expr left) {
 		// binaryOps2 := ("&&" | ε ) binaryOps3
+		boolean isAnAnd = false;
 		if (accept(TokenClass.AND)) {
 			expect(TokenClass.AND);
+			isAnAnd = true;
 		}
-		parseBinaryOps3();
+		Expr right = parseBinaryOps3(left);
+		if (isAnAnd) {
+			return new BinOp(left, Op.AND, right);
+		} else {
+			return right;
+		}
 	}
 
-	private void parseBinaryOps3() {
+	private Expr parseBinaryOps3(Expr left) {
 		// binaryOps3 := ( "!=" | "==" | ε) binaryOps4
+
+		boolean hasSym = false;
+		Op op = null;
 		if (accept(TokenClass.NE)) {
 			expect(TokenClass.NE);
+			op = Op.NE;
+			hasSym = true;
 		} else if (accept(TokenClass.EQ)) {
 			expect(TokenClass.EQ);
+			op = Op.EQ;
+			hasSym = true;
 		}
-		parseBinaryOps4();
+		Expr right = parseBinaryOps4(left);
+
+		if (hasSym) {
+			return new BinOp(left, op, right);
+		} else {
+			return right;
+		}
 
 	}
 
-	private void parseBinaryOps4() {
+	private Expr parseBinaryOps4(Expr left) {
 		// binaryOps4 := (">" | "<" | ">=" | "<=" | ε) binaryOps5
+
+		boolean hasSym = false;
+		Op op = null;
 		if (accept(TokenClass.GT)) {
 			expect(TokenClass.GT);
+			op = Op.GT;
+			hasSym = true;
 		} else if (accept(TokenClass.LT)) {
 			expect(TokenClass.LT);
+			op = Op.LT;
+			hasSym = true;
 		} else if (accept(TokenClass.GE)) {
 			expect(TokenClass.GE);
+			op = Op.GE;
+			hasSym = true;
 		} else if (accept(TokenClass.LE)) {
 			expect(TokenClass.LE);
+			op = Op.LE;
+			hasSym = true;
 		}
-		parseBinaryOps5();
+
+		Expr right = parseBinaryOps5(left);
+
+		if (hasSym) {
+			return new BinOp(left, op, right);
+		} else {
+			return right;
+		}
 
 	}
-	
-	private void parseBinaryOps5() {
-		//:= ( "+" | "-" | ε ) binaryOps6()
+
+	private Expr parseBinaryOps5(Expr left) {
+		// := ( "+" | "-" | ε ) binaryOps6()
+
+		boolean hasSym = false;
+		Op op = null;
 		if (accept(TokenClass.PLUS)) {
 			expect(TokenClass.PLUS);
+			op = Op.ADD;
+			hasSym = true;
 		} else if (accept(TokenClass.MINUS)) {
 			expect(TokenClass.MINUS);
+			op = Op.SUB;
+			hasSym = true;
 		}
-		
-		parseBinaryOps6();
+
+		Expr right = parseBinaryOps6(left);
+
+		if (hasSym) {
+			return new BinOp(left, op, right);
+		} else {
+			return right;
+		}
+
 	}
-	
-	private void parseBinaryOps6() {
-		//binaryOps6 := ( "/" | "*" | "%" | ε ) exp
+
+	private Expr parseBinaryOps6(Expr left) {
+		// binaryOps6 := ( "/" | "*" | "%" | ε ) exp
+
+		boolean hasSym = false;
+		Op op = null;
 		if (accept(TokenClass.DIV)) {
 			expect(TokenClass.DIV);
+			op = Op.DIV;
+			hasSym = true;
 		} else if (accept(TokenClass.ASTERIX)) {
 			expect(TokenClass.ASTERIX);
-		}else if (accept(TokenClass.REM)) {
+			op = Op.MUL;
+			hasSym = true;
+		} else if (accept(TokenClass.REM)) {
 			expect(TokenClass.REM);
+			op = Op.MOD;
+			hasSym = true;
 		}
-		
-		parseExp();
+
+		Expr right = parseExp();
+
+		if (hasSym) {
+			return new BinOp(left, op, right);
+		} else {
+			return right;
+		}
+
 	}
 
 }

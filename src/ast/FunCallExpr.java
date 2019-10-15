@@ -9,6 +9,7 @@ public class FunCallExpr extends Expr {
 
 	public FunCallExpr(String name, List<Expr> a) {
 		this.name = name;
+		args = a;
 	}
 
 	public <T> T accept(ASTVisitor<T> v) {

@@ -92,9 +92,9 @@ public class ASTPrinter implements ASTVisitor<Void> {
 
 	@Override
 	public Void visitBaseType(BaseType bt) {
-		writer.print("BaseType(");
+		//writer.print("BaseType(");
 		writer.print(bt);
-		writer.print(")");
+		//writer.print(")");
 		return null;
 	}
 
@@ -207,7 +207,7 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitSizeOfExpr(SizeOfExpr so) {
 		writer.print("SizeOfExpr(");
-		so.expr.accept(this);
+		so.type.accept(this);
 		writer.print(")");
 		return null;
 	}
@@ -271,6 +271,14 @@ public class ASTPrinter implements ASTVisitor<Void> {
 			writer.print(",");
 			r.expr.accept(this);
 		}
+		writer.print(")");
+		return null;
+	}
+
+	@Override
+	public Void visitValueAtExpr(ValueAtExpr va) {
+		writer.print("ValueAtExpr(");
+		va.expr.accept(this);
 		writer.print(")");
 		return null;
 	}
