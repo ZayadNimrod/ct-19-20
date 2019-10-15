@@ -5,24 +5,32 @@ import java.util.Map;
 public class Scope {
 	private Scope outer;
 	private Map<String, Symbol> symbolTable;
-	
-	public Scope(Scope outer) { 
-		this.outer = outer; 
+
+	public Scope(Scope outer) {
+		this.outer = outer;
 	}
-	
-	public Scope() { this(null); }
-	
+
+	public Scope() {
+		this(null);
+	}
+
 	public Symbol lookup(String name) {
-		// To be completed...
+		if(lookupCurrent(name) != null) {return lookupCurrent(name);}
+		if(outer!=null) {return outer.lookup(name);}
 		return null;
 	}
-	
+
 	public Symbol lookupCurrent(String name) {
-		// To be completed...
+		if (symbolTable.containsKey(name)) {
+			return symbolTable.get(name);
+		}
 		return null;
 	}
-	
-	public void put(Symbol sym) {
+
+	public void put(Symbol sym, BaseSemanticVisitor b) {
+		if (lookupCurrent(sym.name) != null) {
+			b.error("Declared symbol with same name as symbol declared in the same scope");
+		}
 		symbolTable.put(sym.name, sym);
 	}
 }
