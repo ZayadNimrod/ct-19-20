@@ -11,8 +11,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-import javax.xml.crypto.Data;
-
 /**
  * @author cdubach
  */
@@ -194,13 +192,16 @@ public class Parser {
 		expect(TokenClass.IDENTIFIER);
 		if (accept(TokenClass.SC)) {
 			expect(TokenClass.SC);
-		} else {
+		} else  if (accept(TokenClass.LSBR)){
 			int len = parseArrayDecl();
 			expect(TokenClass.SC);
 			type = new ArrayType(type, len);
+		}else {
+			error(TokenClass.SC,TokenClass.LSBR);
 		}
 
 		return new VarDecl(type, varname);
+
 	}
 
 	private int parseArrayDecl() {

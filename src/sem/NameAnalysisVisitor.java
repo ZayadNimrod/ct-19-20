@@ -86,29 +86,29 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	@Override
 	public Void visitIntLiteral(IntLiteral il) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public Void visitStrLiteral(StrLiteral sl) {
-		// TODO Auto-generated method stub
+	public Void visitStrLiteral(StrLiteral sl) {		
 		return null;
 	}
 
 	@Override
 	public Void visitChrLiteral(ChrLiteral cl) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Void visitVarExpr(VarExpr v) {
-		Symbol s = scopeStack.peek().lookup(v.name);
-		VarSymbol vs = (VarSymbol) s;
-		if (vs != null) {
-			v.vd = vs.variable;
-		}
+//		Symbol s = scopeStack.peek().lookup(v.name);
+//		VarSymbol vs = (VarSymbol) s;
+//		if (vs != null) {
+//			v.vd = vs.variable;
+//			v.type = v.vd.type;
+//		}else {
+//			error("Using non-variable identifier as a variable (possibly a function?)");
+//		}
 		return null;
 	}
 
@@ -116,9 +116,11 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 	public Void visitFunCallExpr(FunCallExpr fc) {
 		Symbol s = scopeStack.peek().lookup(fc.name);
 		FunSymbol fs = (FunSymbol) s;
-		if (fs != null) {
-			fc.vd = fs.function;
-		}
+//		if (fs != null) {
+//			fc.vd = fs.function;
+//		}else {
+//			error("Using non-function identifier as a function (possibly a variable?)");
+//		}
 		for (Expr e : fc.args) {
 			e.accept(this);
 		}

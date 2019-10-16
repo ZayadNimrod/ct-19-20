@@ -5,10 +5,7 @@ int int(){
 
 }
 
-int main(){	
-	
-
-	
+int main(){		
 	
 	printf((char*)"worked");
 	return 0;

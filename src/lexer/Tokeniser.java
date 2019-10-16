@@ -62,7 +62,7 @@ public class Tokeniser {
 		if (c == '#') {
 			for (int i = 0; i < 7; i++) {
 				if (scanner.peek() == "include".charAt(i)) {
-					scanner.next();
+					scanner.next();					
 				} else {
 					error(c, line, column);
 					return new Token(TokenClass.INVALID, line, column);
