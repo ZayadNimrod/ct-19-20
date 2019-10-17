@@ -5,10 +5,6 @@ import java.util.*;
 
 public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
-	
-	//TODO: no local scoping whatsoever
-	//TODO: type analysis on all Exprs not done
-	
 	private Stack<Scope> scopeStack;
 
 	private Void putSymbol(Symbol s) {
@@ -76,11 +72,15 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 	public Void visitFunDecl(FunDecl p) {
 		putSymbol(new FunSymbol(p));
 		p.type.accept(this);
-		//TODO: new scope for parameters and internal block?
-		for (VarDecl vd: p.params) {
+		// paramaters exist in the functions scope
+		scopeStack.add(new Scope());
+		for (VarDecl vd : p.params) {
 			vd.accept(this);
-		}		
+		}
 		p.block.accept(this);
+		scopeStack.pop();
+		// TODO: what we have right now allows paramter shadwoing, which is probably not
+		// ideal
 		return null;
 	}
 
@@ -90,7 +90,7 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 	}
 
 	@Override
-	public Void visitStrLiteral(StrLiteral sl) {		
+	public Void visitStrLiteral(StrLiteral sl) {
 		return null;
 	}
 
@@ -109,6 +109,13 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 //		}else {
 //			error("Using non-variable identifier as a variable (possibly a function?)");
 //		}
+
+		Symbol s = scopeStack.peek().lookup(v.name);
+		// if (s != new VarSymbol(v.vd)) {
+		if (s != null) {
+			error("Variable " + v.name + " has not been declared");
+		}
+		// v.vd.accept(this);
 		return null;
 	}
 
@@ -121,6 +128,12 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 //		}else {
 //			error("Using non-function identifier as a function (possibly a variable?)");
 //		}
+		
+		// if (s != new FunSymbol()) {
+		if (s != null) {
+			error("Function " + fc.name + " has not been declared");
+		}
+		
 		for (Expr e : fc.args) {
 			e.accept(this);
 		}
@@ -136,6 +149,7 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	@Override
 	public Void visitArrayAccessExpr(ArrayAccessExpr ae) {
+		// TODO: check if array exist? but anything can be array-accssed...
 		ae.array.accept(this);
 		ae.index.accept(this);
 		return null;
@@ -143,6 +157,7 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	@Override
 	public Void visitFieldAccessExpr(FieldAccessExpr fa) {
+		// TODO: check struct exists. same problem as above...
 		fa.struct.accept(this);
 		return null;
 	}
@@ -196,11 +211,14 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	@Override
 	public Void visitBlock(Block b) {
+		scopeStack.add(new Scope());
 		for (VarDecl vd : b.vars) {
 			vd.accept(this);
-		}for (Stmt s : b.code) {
+		}
+		for (Stmt s : b.code) {
 			s.accept(this);
 		}
+		scopeStack.pop();
 		return null;
 	}
 

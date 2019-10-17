@@ -268,7 +268,6 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	public Void visitReturn(Return r) {
 		writer.print("Return(");
 		if (r.expr != null) {
-			writer.print(",");
 			r.expr.accept(this);
 		}
 		writer.print(")");
