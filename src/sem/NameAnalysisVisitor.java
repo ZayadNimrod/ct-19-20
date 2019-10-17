@@ -3,6 +3,8 @@ package sem;
 import ast.*;
 import java.util.*;
 
+import javax.swing.event.ListSelectionEvent;
+
 public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	private Stack<Scope> scopeStack;
@@ -22,6 +24,34 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 		for (VarDecl vd : p.varDecls) {
 			vd.accept(this);
 		}
+		//declare built-in functions
+		/*void print_s(char* s);
+		void print_i(int i);
+		void print_c(char c);
+		char read_c();
+		int read_i();
+		void* mcmalloc(int size);
+		 */
+		List<VarDecl> argsTemp = new LinkedList<VarDecl>();
+		argsTemp.add(new VarDecl(new PointerType(BaseType.CHAR),"s"));
+		putSymbol(new FunSymbol(new FunDecl(BaseType.VOID,"print_s",new LinkedList<VarDecl>(argsTemp),new Block(new LinkedList<VarDecl>(),new LinkedList<Stmt>()))));
+		
+		argsTemp = new LinkedList<VarDecl>();
+		argsTemp.add(new VarDecl(BaseType.INT,"i"));
+		putSymbol(new FunSymbol(new FunDecl(BaseType.VOID,"print_i",new LinkedList<VarDecl>(argsTemp),new Block(new LinkedList<VarDecl>(),new LinkedList<Stmt>()))));
+		
+		argsTemp = new LinkedList<VarDecl>();
+		argsTemp.add(new VarDecl(BaseType.CHAR,"c"));
+		putSymbol(new FunSymbol(new FunDecl(BaseType.VOID,"print_c",new LinkedList<VarDecl>(argsTemp),new Block(new LinkedList<VarDecl>(),new LinkedList<Stmt>()))));
+		
+		putSymbol(new FunSymbol(new FunDecl(BaseType.CHAR,"read_c",new LinkedList<VarDecl>(),new Block(new LinkedList<VarDecl>(),new LinkedList<Stmt>()))));
+		
+		putSymbol(new FunSymbol(new FunDecl(BaseType.INT,"read_i",new LinkedList<VarDecl>(),new Block(new LinkedList<VarDecl>(),new LinkedList<Stmt>()))));
+		
+		argsTemp = new LinkedList<VarDecl>();
+		argsTemp.add(new VarDecl(BaseType.INT,"size"));
+		putSymbol(new FunSymbol(new FunDecl(new PointerType(BaseType.VOID),"mcmalloc",new LinkedList<VarDecl>(argsTemp),new Block(new LinkedList<VarDecl>(),new LinkedList<Stmt>()))));
+		
 		for (FunDecl fd : p.funDecls) {
 			fd.accept(this);
 		}
@@ -73,14 +103,12 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 		putSymbol(new FunSymbol(p));
 		p.type.accept(this);
 		// paramaters exist in the functions scope
-		scopeStack.add(new Scope());
+		scopeStack.add(new Scope(scopeStack.peek()));
 		for (VarDecl vd : p.params) {
 			vd.accept(this);
 		}
 		p.block.accept(this);
 		scopeStack.pop();
-		// TODO: what we have right now allows paramter shadwoing, which is probably not
-		// ideal
 		return null;
 	}
 
@@ -112,8 +140,15 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 		Symbol s = scopeStack.peek().lookup(v.name);
 		// if (s != new VarSymbol(v.vd)) {
-		if (s != null) {
+		if (s == null) {
 			error("Variable " + v.name + " has not been declared");
+		} else {
+			if (!(s instanceof VarSymbol)) {
+				error(v.name + " has not been declared as a variable");
+			} else {
+				VarSymbol vs = (VarSymbol) s;
+				v.vd = vs.variable;
+			}
 		}
 		// v.vd.accept(this);
 		return null;
@@ -122,18 +157,26 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 	@Override
 	public Void visitFunCallExpr(FunCallExpr fc) {
 		Symbol s = scopeStack.peek().lookup(fc.name);
-		FunSymbol fs = (FunSymbol) s;
+
 //		if (fs != null) {
 //			fc.vd = fs.function;
 //		}else {
 //			error("Using non-function identifier as a function (possibly a variable?)");
 //		}
-		
+
 		// if (s != new FunSymbol()) {
-		if (s != null) {
+		if (s == null) {
 			error("Function " + fc.name + " has not been declared");
+		} else {
+			
+			if (!(s instanceof FunSymbol)) {
+				error(fc.name + " has not been declared as a function");
+			} else {
+				FunSymbol fs = (FunSymbol) s;
+				fc.fd = fs.function;
+			}
 		}
-		
+
 		for (Expr e : fc.args) {
 			e.accept(this);
 		}
@@ -211,7 +254,7 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	@Override
 	public Void visitBlock(Block b) {
-		scopeStack.add(new Scope());
+		scopeStack.add(new Scope(scopeStack.peek()));
 		for (VarDecl vd : b.vars) {
 			vd.accept(this);
 		}
