@@ -6,8 +6,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitBaseType(BaseType bt) {
-		// To be completed...
-		return null;
+		return bt;
 	}
 
 	@Override

@@ -9,6 +9,10 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	private Stack<Scope> scopeStack;
 
+	// this exists to make sure there is no more than one struct stype of a given
+	// name
+	private List<StructTypeDecl> structs = new LinkedList<StructTypeDecl>();
+
 	private Void putSymbol(Symbol s) {
 		scopeStack.peek().put(s, this);
 		return null;
@@ -91,6 +95,15 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 		for (VarDecl vd : st.variables) {
 			vd.accept(this);
 		}
+
+		// I wish I had LINQ to search over structdecl.name...
+		// if(structs.contains(x=>x.structDecl.structType == st.structDecl.structType ))
+		// {
+		if (structs.stream().anyMatch(n -> n.structDecl.structType == n.structDecl.structType)) {
+			error("Defining struct " + st.structDecl.structType + " more than once");
+		}
+		structs.add(st);
+
 		return null;
 	}
 
