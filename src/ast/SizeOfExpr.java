@@ -1,7 +1,7 @@
 package ast;
 
 public class SizeOfExpr extends Expr {
-	public final Type type;
+	public Type type;
 
 	public SizeOfExpr(Type t) {
 		type = t;
