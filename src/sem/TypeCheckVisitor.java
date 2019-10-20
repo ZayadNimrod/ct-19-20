@@ -249,8 +249,8 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		if (e != BaseType.INT) {
 			error("WHILE condition expression must evaluate to type Int, not " + e.toString());
 		}
-		w.code.accept(this);
-		return null;
+		Type ret = w.code.accept(this);
+		return ret;
 	}
 
 	@Override
@@ -259,11 +259,18 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		if (e != BaseType.INT) {
 			error("IF condition expression must evaluate to type Int, not " + e.toString());
 		}
-		i.code.accept(this);
+		//this type checking is for the same purposes as in the Block code
+		
+		Type retType = i.code.accept(this);
+		Type elseRetType = null;
 		if (i.elseCode != null) {
-			i.elseCode.accept(this);
+			elseRetType = i.elseCode.accept(this);
 		}
-		return null;
+		if(retType !=null && elseRetType != null && retType != elseRetType) {
+			error("Code in IF statement returns conflicting types: "+retType.toString()+" and "+elseRetType.toString());
+		}
+		
+		return retType;
 	}
 
 	@Override
