@@ -1,6 +1,6 @@
 package sem;
 
-import java.util.Stack;
+import java.util.*;
 
 import ast.*;
 
@@ -29,11 +29,33 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		for (VarDecl v : b.vars) {
 			v.accept(this);
 		}
+		List<Type> returnVals = new LinkedList<Type>();
 		for (Stmt s : b.code) {
-			s.accept(this);
+			// the only stmt to return types are the return statement; we must check these
+			// are the same, this is the return type of the block (which is only used in
+			// functions, and thus allows us to check that the declared type and actual
+			// return type are the same)
+			Type n = s.accept(this);
+			if (n != null) {
+				returnVals.add(n);
+			}
 		}
+		//converting the list to set and back removes all duplicate items 
+		returnVals = new LinkedList<Type>(new HashSet<Type>(returnVals));
+		Type returnType = null;
+		if(returnVals.size()!=1) {
+			String e = "Multiple return types from block: ";
+			for(Type t:returnVals) {
+				e+=t.toString();
+				e+=",";
+			}
+			error(e);
+		}else {
+			returnType = returnVals.get(0);
+		}
+		
 		scopeStack.pop();
-		return null;
+		return returnType;
 	}
 
 	@Override
@@ -44,7 +66,8 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		for (VarDecl v : p.params) {
 			v.accept(this);
 		}
-		p.block.accept(this);
+		Type returnTypeActual = p.block.accept(this);
+		if(p.type!=returnTypeActual) {error("Function "+p.name+" has inconsistency between declared return type and actual return type, must be "+p.type.toString());}
 		return p.type;
 	}
 
@@ -125,42 +148,42 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		switch (bo.op) {
 		case ADD:
 			return left;
-		case AND://TODO: check for boolean types
-			return BaseType.INT; //TODO: not sure, is this our equivalent for a boolean?
+		case AND:// TODO: check for boolean types
+			return BaseType.INT; // TODO: not sure, is this our equivalent for a boolean?
 		case DIV:
-			if(left!=BaseType.INT) {
-				error("Division can only be done on operands of type Int, not "+left.toString());
+			if (left != BaseType.INT) {
+				error("Division can only be done on operands of type Int, not " + left.toString());
 			}
-			return BaseType.INT; 
+			return BaseType.INT;
 		case EQ:
-			return BaseType.INT; //TODO: not sure, is this our equivalent for a boolean?
+			return BaseType.INT; // TODO: not sure, is this our equivalent for a boolean?
 		case GE:
-			return BaseType.INT; //TODO: not sure, is this our equivalent for a boolean?
+			return BaseType.INT; // TODO: not sure, is this our equivalent for a boolean?
 		case GT:
-			return BaseType.INT; //TODO: not sure, is this our equivalent for a boolean?
+			return BaseType.INT; // TODO: not sure, is this our equivalent for a boolean?
 		case LE:
-			return BaseType.INT; //TODO: not sure, is this our equivalent for a boolean?
+			return BaseType.INT; // TODO: not sure, is this our equivalent for a boolean?
 		case LT:
-			return BaseType.INT; //TODO: not sure, is this our equivalent for a boolean?
+			return BaseType.INT; // TODO: not sure, is this our equivalent for a boolean?
 		case MOD:
-			if(left!=BaseType.INT) {
-				error("Remainder division can only be done on operands of type Int, not "+left.toString());
+			if (left != BaseType.INT) {
+				error("Remainder division can only be done on operands of type Int, not " + left.toString());
 			}
-			return BaseType.INT; 
+			return BaseType.INT;
 		case MUL:
-			if(left!=BaseType.INT) {
-				error("Multiplication can only be done on operands of type Int, not "+left.toString());
+			if (left != BaseType.INT) {
+				error("Multiplication can only be done on operands of type Int, not " + left.toString());
 			}
-			return BaseType.INT; 
+			return BaseType.INT;
 		case NE:
-			return BaseType.INT; //TODO: not sure, is this our equivalent for a boolean?
+			return BaseType.INT; // TODO: not sure, is this our equivalent for a boolean?
 		case OR:
-			return BaseType.INT; //TODO: not sure, is this our equivalent for a boolean?
+			return BaseType.INT; // TODO: not sure, is this our equivalent for a boolean?
 		case SUB:
-			if(left!=BaseType.INT) {
-				error("Subtraction can only be done on operands of type Int, not "+left.toString());
+			if (left != BaseType.INT) {
+				error("Subtraction can only be done on operands of type Int, not " + left.toString());
 			}
-			return BaseType.INT; 
+			return BaseType.INT;
 		default:
 			return null;
 		}
@@ -217,11 +240,13 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitAssign(Assign a) {
-		if(!(a.left instanceof VarExpr || a.left instanceof FieldAccessExpr || a.left instanceof ArrayAccessExpr || a.left instanceof ValueAtExpr)) {
-			error("Cannot assign to a "+a.toString()+", must be a variable, field, array element, or pointed to by pointer");
+		if (!(a.left instanceof VarExpr || a.left instanceof FieldAccessExpr || a.left instanceof ArrayAccessExpr
+				|| a.left instanceof ValueAtExpr)) {
+			error("Cannot assign to a " + a.toString()
+					+ ", must be a variable, field, array element, or pointed to by pointer");
 			return null;
 		}
-		
+
 		Type left = a.left.accept(this);
 		Type right = a.right.accept(this);
 		if (left != right) {
@@ -234,10 +259,10 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitReturn(Return r) {
-		// TODO Auto-generated method stub
+		Type ret = r.expr.accept(this);
 
 		// TODO check return type consistency with function it is in
-		return null;
+		return ret;
 	}
 
 	@Override
