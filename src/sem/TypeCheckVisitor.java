@@ -294,8 +294,14 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitValueAtExpr(ValueAtExpr va) {
-		// TODO Auto-generated method stub
-		return null;
+		Type arrayType = va.expr.accept(this);
+		if ((ArrayType) arrayType == null) {
+			error("Trying to access index of non-array expression, type " + arrayType.toString()); //will this ever be reached?
+		}
+		ArrayType a = (ArrayType) arrayType;
+		va.type = a.type;
+		
+		return va.type;
 	}
 
 }
