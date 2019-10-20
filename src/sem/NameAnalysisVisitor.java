@@ -118,7 +118,7 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 	public Void visitFunDecl(FunDecl p) {
 		putSymbol(new FunSymbol(p));
 		p.type.accept(this);
-		// paramaters exist in the functions scope
+		// parameters exist in the functions scope
 		scopeStack.add(new Scope(scopeStack.peek()));
 		for (VarDecl vd : p.params) {
 			vd.accept(this);

@@ -7,6 +7,7 @@ import ast.*;
 public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	private Stack<Scope> scopeStack = new Stack<Scope>();
+	private List<StructTypeDecl> structs = new LinkedList<StructTypeDecl>();
 
 	private Void putSymbol(Symbol s) {
 		scopeStack.peek().put(s, this);
@@ -20,7 +21,12 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitStructTypeDecl(StructTypeDecl st) {
+		for (VarDecl v : st.variables) {
+			v.accept(this);
+		}
+		structs.add(st);
 		return st.structDecl.accept(this);
+
 	}
 
 	@Override
@@ -62,6 +68,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	public Type visitFunDecl(FunDecl p) {
 		// TODO: not sure how scoping will interact with params here;
 		// we make a new scope, so params can be shadowed?
+		scopeStack.push(new Scope());
 		putSymbol(new FunSymbol(p));
 		for (VarDecl v : p.params) {
 			v.accept(this);
@@ -72,6 +79,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 					+ " has inconsistency between declared return type and actual return type, must be "
 					+ p.type.toString());
 		}
+		scopeStack.pop();
 		return p.type;
 	}
 
@@ -110,6 +118,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitStructType(StructType s) {
+
 		return s;
 	}
 
@@ -215,14 +224,49 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitArrayAccessExpr(ArrayAccessExpr ae) {
-		ae.type = new PointerType(ae.array.accept(this));
+		Type arrayType = ae.array.accept(this);
+		if (((ArrayType) arrayType) == null) {
+			// will this ever be reached?
+			error("Trying to access index of non-array expression, type " + arrayType.toString());
+			return null;
+		}
+		ArrayType a = (ArrayType) arrayType;
+		ae.type = a.type;
+
 		return ae.type;
 	}
 
 	@Override
 	public Type visitFieldAccessExpr(FieldAccessExpr fa) {
-		// TODO Auto-generated method stub
-		return null;
+		Type left = fa.struct.accept(this);
+		// try to find the underlying struct
+		StructType st = (StructType) left;
+		if (st == null) {
+			error("Cannot access field of non-struct object " + left.toString());
+			return null;
+		}
+
+		StructTypeDecl decleration = null;
+		// all this nonsense instead of a simple .where() function would have sufficed
+		Optional<StructTypeDecl> optional = structs.stream().filter(x -> x.structDecl == st).findFirst();
+		if (optional.isPresent()) {
+			decleration = optional.get();
+		} else {
+			error("Struct " + st.structType + " has not been defined");
+			return null;
+		}
+
+		VarDecl member = null;
+		List<VarDecl> members = new LinkedList<VarDecl>(decleration.variables);
+		Optional<VarDecl> optional2 = members.stream().filter(x -> x.varName == fa.field).findFirst();
+		if (optional2.isPresent()) {
+			member = optional2.get();
+		} else {
+			error("Member " + fa.field + " does not exist in struct " + st.toString());
+			return null;
+		}
+
+		return member.type;
 	}
 
 	@Override
@@ -259,17 +303,18 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		if (e != BaseType.INT) {
 			error("IF condition expression must evaluate to type Int, not " + e.toString());
 		}
-		//this type checking is for the same purposes as in the Block code
-		
+		// this type checking is for the same purposes as in the Block code
+
 		Type retType = i.code.accept(this);
 		Type elseRetType = null;
 		if (i.elseCode != null) {
 			elseRetType = i.elseCode.accept(this);
 		}
-		if(retType !=null && elseRetType != null && retType != elseRetType) {
-			error("Code in IF statement returns conflicting types: "+retType.toString()+" and "+elseRetType.toString());
+		if (retType != null && elseRetType != null && retType != elseRetType) {
+			error("Code in IF statement returns conflicting types: " + retType.toString() + " and "
+					+ elseRetType.toString());
 		}
-		
+
 		return retType;
 	}
 
@@ -301,13 +346,12 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitValueAtExpr(ValueAtExpr va) {
-		Type arrayType = va.expr.accept(this);
-		if ((ArrayType) arrayType == null) {
-			error("Trying to access index of non-array expression, type " + arrayType.toString()); //will this ever be reached?
+		Type t = va.expr.accept(this);
+		PointerType p = (PointerType)t;
+		if(p==null) {
+			error("Cannot access address of non-pointer type");
 		}
-		ArrayType a = (ArrayType) arrayType;
-		va.type = a.type;
-		
+		va.type=p.pointerToType;
 		return va.type;
 	}
 
