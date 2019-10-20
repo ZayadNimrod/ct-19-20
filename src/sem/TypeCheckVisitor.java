@@ -120,6 +120,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitIntLiteral(IntLiteral il) {
+		il.type = BaseType.INT;
 		return BaseType.INT;
 	}
 
@@ -130,6 +131,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitChrLiteral(ChrLiteral cl) {
+		cl.type = BaseType.CHAR;
 		return BaseType.CHAR;
 	}
 
@@ -148,20 +150,24 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 			error("operands of binary operation must match,(" + left.toString() + "," + right.toString() + ")");
 			return null;
 		}
-
+		Type ret = null;
 		switch (bo.op) {
 		case ADD:
-			return left;
+			ret = left;
+			break;
 		case AND:
 			if (left != BaseType.INT) {
 				error("Logical AND only be done on operands of type Int, not " + left.toString());
 			}
-			return BaseType.INT; // INTs are our substitute for proper booleans
+			ret = BaseType.INT; // INTs are our substitute for proper booleans
+			break;
 		case DIV:
 			if (left != BaseType.INT) {
 				error("Division can only be done on operands of type Int, not " + left.toString());
 			}
-			return BaseType.INT;
+
+			ret = BaseType.INT;
+			break;
 		case EQ:
 		case GE:
 		case GT:
@@ -170,35 +176,41 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 			if (left != BaseType.INT) {
 				error("Comparison can only be done on operands of type Int, not " + left.toString());
 			}
-			return BaseType.INT;
+			ret = BaseType.INT;
+			break;
 		case MOD:
 			if (left != BaseType.INT) {
 				error("Remainder division can only be done on operands of type Int, not " + left.toString());
 			}
-			return BaseType.INT;
+			ret = BaseType.INT;
+			break;
 		case MUL:
 			if (left != BaseType.INT) {
 				error("Multiplication can only be done on operands of type Int, not " + left.toString());
 			}
-			return BaseType.INT;
+			ret = BaseType.INT;
+			break;
 		case NE:
 			if (left != BaseType.INT) {
 				error("NOT EQUAL can only be done on operands of type Int, not " + left.toString());
 			}
-			return BaseType.INT;
+			ret = BaseType.INT;
+			break;
 		case OR:
 			if (left != BaseType.INT) {
 				error("Logical OR can only be done on operands of type Int, not " + left.toString());
 			}
-			return BaseType.INT; // TODO: not sure, is this our equivalent for a boolean?
+			ret = BaseType.INT;
+			break;
 		case SUB:
 			if (left != BaseType.INT) {
 				error("Subtraction can only be done on operands of type Int, not " + left.toString());
 			}
-			return BaseType.INT;
-		default:
-			return null;
+			ret = BaseType.INT;
+			break;
 		}
+		bo.type = ret;
+		return ret;
 	}
 
 	@Override
@@ -233,16 +245,20 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitWhile(While w) {
-		w.expr.accept(this);
-		// TODO: check that the expression is a truth value?
+		Type e = w.expr.accept(this);
+		if (e != BaseType.INT) {
+			error("WHILE condition expression must evaluate to type Int, not " + e.toString());
+		}
 		w.code.accept(this);
 		return null;
 	}
 
 	@Override
 	public Type visitIf(If i) {
-		i.expr.accept(this);
-		// TODO: check that the expression is a truth value?
+		Type e = i.expr.accept(this);
+		if (e != BaseType.INT) {
+			error("IF condition expression must evaluate to type Int, not " + e.toString());
+		}
 		i.code.accept(this);
 		if (i.elseCode != null) {
 			i.elseCode.accept(this);
@@ -273,7 +289,6 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	public Type visitReturn(Return r) {
 		Type ret = r.expr.accept(this);
 
-		// TODO check return type consistency with function it is in
 		return ret;
 	}
 
