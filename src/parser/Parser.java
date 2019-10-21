@@ -167,14 +167,14 @@ public class Parser {
 		// check here is to check that this is a variable decleration rather than a
 		// function declaration
 		List<VarDecl> ret = new LinkedList<VarDecl>();
-		//this accept crashes sometimes?
-		//System.out.print(token);
+		// this accept crashes sometimes?
+		// System.out.print(token);
 		if (accept(TokenClass.INT, TokenClass.CHAR, TokenClass.VOID, TokenClass.STRUCT)) {
-			//System.out.print("L");
+			// System.out.print("L");
 			Token look = lookAhead(2);
 			if (look != null) {
-				//System.out.print("N");
-				//should this be LPAR
+				// System.out.print("N");
+				// should this be LPAR
 				if (look.tokenClass != TokenClass.LPAR) {
 					ret.add(parseVarDecl());
 					ret.addAll(parseVarDeclRep());
@@ -192,12 +192,12 @@ public class Parser {
 		expect(TokenClass.IDENTIFIER);
 		if (accept(TokenClass.SC)) {
 			expect(TokenClass.SC);
-		} else  if (accept(TokenClass.LSBR)){
+		} else if (accept(TokenClass.LSBR)) {
 			int len = parseArrayDecl();
 			expect(TokenClass.SC);
 			type = new ArrayType(type, len);
-		}else {
-			error(TokenClass.SC,TokenClass.LSBR);
+		} else {
+			error(TokenClass.SC, TokenClass.LSBR);
 		}
 
 		return new VarDecl(type, varname);
@@ -399,6 +399,10 @@ public class Parser {
 	}
 
 	private Expr parseExp() {
+		return parseExp(true);
+	}
+
+	private Expr parseExp(boolean binOps) {
 
 		// the scoreboard has an issue where we fail to parse an expression, so we enter
 		// an infinte recursion loop and crasyh
@@ -446,7 +450,7 @@ public class Parser {
 				return null;// doesn't matter what we return for ther AST since there is a parsing error
 			}
 
-			ret = parseArrayOrFieldAccessOrBinaryOps(ret);
+			ret = parseArrayOrFieldAccessOrBinaryOps(ret, binOps);
 			return ret;
 		} catch (StackOverflowError e) {
 			System.out.println("Failed to parse Expression due to infinite recursion\n");
@@ -539,7 +543,7 @@ public class Parser {
 		return new TypecastExpr(t, e);
 	}
 
-	private Expr parseArrayOrFieldAccessOrBinaryOps(Expr previous) {
+	private Expr parseArrayOrFieldAccessOrBinaryOps(Expr previous, boolean binOps) {
 		// arrayOrFieldAccessOrBinaryOps :: = (arrayAccess | fieldAccess | binaryOps |
 		// ε)
 		if (accept(TokenClass.LSBR)) {
@@ -548,7 +552,7 @@ public class Parser {
 			return parseFieldAccess(previous);
 		} else if (accept(TokenClass.GT, TokenClass.LT, TokenClass.GE, TokenClass.LE, TokenClass.NE, TokenClass.EQ,
 				TokenClass.PLUS, TokenClass.MINUS, TokenClass.DIV, TokenClass.ASTERIX, TokenClass.REM, TokenClass.OR,
-				TokenClass.AND)) {
+				TokenClass.AND) && binOps == true) {
 			// ">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" |
 			// "&&"
 			return parseBinaryOps(previous);
@@ -704,11 +708,24 @@ public class Parser {
 			hasSym = true;
 		}
 
-		Expr right = parseExp();
-
+		if(accept(TokenClass.SC)) {
+			return left;
+		}
 		if (hasSym) {
-			return new BinOp(left, op, right);
+			// these operators bind most tightly, so we want to bind to the next token
+			// rather than the next expression...
+			if (!accept(TokenClass.LPAR)) {
+				Expr right = parseExp(false);
+				// get the next *expression that is not a binary operation*
+				Expr us =new BinOp(left, op, right);
+				return parseBinaryOps(us);
+			} else {
+				Expr right = parseExp();
+				return new BinOp(left, op, right);
+			}
+
 		} else {
+			Expr right = parseExp();
 			return right;
 		}
 

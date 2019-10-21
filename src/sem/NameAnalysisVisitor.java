@@ -208,7 +208,7 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	@Override
 	public Void visitArrayAccessExpr(ArrayAccessExpr ae) {
-		// TODO: check if array exist? but anything can be array-accssed...
+		// TODO: check if array exist? but anything can be array-accessed...
 		ae.array.accept(this);
 		ae.index.accept(this);
 		return null;
@@ -216,7 +216,8 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	@Override
 	public Void visitFieldAccessExpr(FieldAccessExpr fa) {
-		// TODO: check struct exists. same problem as above...
+		//isn't this more for the type checker?
+		// TODO: check struct and field exists. How? Is the Type checker aready doing that?
 		fa.struct.accept(this);
 		return null;
 	}
