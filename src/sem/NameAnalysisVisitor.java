@@ -216,8 +216,9 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	@Override
 	public Void visitFieldAccessExpr(FieldAccessExpr fa) {
-		//isn't this more for the type checker?
-		// TODO: check struct and field exists. How? Is the Type checker aready doing that?
+		// isn't this more for the type checker?
+		// TODO: check struct and field exists. How? Is the Type checker aready doing
+		// that?
 		fa.struct.accept(this);
 		return null;
 	}
@@ -267,7 +268,9 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	@Override
 	public Void visitReturn(Return r) {
-		r.expr.accept(this);
+		if (r.expr != null) {
+			r.expr.accept(this);
+		}
 		return null;
 	}
 
