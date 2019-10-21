@@ -167,7 +167,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 			return fc.type;
 		} else {
-			error("Function defintion for "+fc.name+" was not found");
+			error("Function defintion for " + fc.name + " was not found");
 			return null;
 		}
 	}
@@ -307,7 +307,8 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitExprStmt(ExprStmt e) {
-		return e.expr.accept(this);
+		e.expr.accept(this);
+		return null;
 	}
 
 	@Override
@@ -362,9 +363,13 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitReturn(Return r) {
-		Type ret = r.expr.accept(this);
+		if (r.expr!=null) {
+			Type ret = r.expr.accept(this);
 
-		return ret;
+			return ret;
+		} else {
+			return BaseType.VOID;
+		}
 	}
 
 	@Override
