@@ -66,7 +66,6 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitFunDecl(FunDecl p) {
-		// TODO: not sure how scoping will interact with params here;
 		// we make a new scope, so params can be shadowed?
 		scopeStack.push(new Scope());
 		putSymbol(new FunSymbol(p));
