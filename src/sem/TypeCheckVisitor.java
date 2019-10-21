@@ -147,6 +147,16 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	@Override
 	public Type visitFunCallExpr(FunCallExpr fc) {
 		fc.type = fc.fd.accept(this);
+		// TODO: check args are correct
+		for (int i = 0; i < fc.args.size(); i++) {
+			Type declaredType = fc.fd.params.get(i).accept(this);
+			Type actualType = fc.args.get(i).accept(this);
+			if (declaredType != actualType) {
+				error("Actual and declared argument mismatch; argument " + fc.fd.params.get(i).varName + " of function "
+						+ fc.name + " is of type " + declaredType.toString() + ", not " + actualType.toString() + ".");
+			}
+		}
+
 		return fc.type;
 	}
 
@@ -272,7 +282,8 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	@Override
 	public Type visitSizeOfExpr(SizeOfExpr so) {
 		so.type = BaseType.INT;
-		return so.type;
+		so.baseType.accept(this);
+		return BaseType.INT;
 	}
 
 	@Override
@@ -284,7 +295,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitExprStmt(ExprStmt e) {
-		return e.accept(this);
+		return e.expr.accept(this);
 	}
 
 	@Override
@@ -347,11 +358,11 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	@Override
 	public Type visitValueAtExpr(ValueAtExpr va) {
 		Type t = va.expr.accept(this);
-		PointerType p = (PointerType)t;
-		if(p==null) {
+		PointerType p = (PointerType) t;
+		if (p == null) {
 			error("Cannot access address of non-pointer type");
 		}
-		va.type=p.pointerToType;
+		va.type = p.pointerToType;
 		return va.type;
 	}
 
