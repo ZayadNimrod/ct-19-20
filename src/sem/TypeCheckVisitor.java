@@ -134,7 +134,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitStrLiteral(StrLiteral sl) {
-		sl.type =new PointerType(BaseType.CHAR);
+		sl.type = new PointerType(BaseType.CHAR);
 		return sl.type;
 	}
 
@@ -147,14 +147,20 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	@Override
 	public Type visitFunCallExpr(FunCallExpr fc) {
 		fc.type = fc.fd.accept(this);
-		// TODO: check args are correct
-		for (int i = 0; i < fc.args.size(); i++) {
-			Type declaredType = fc.fd.params.get(i).accept(this);
-			Type actualType = fc.args.get(i).accept(this);
-			if (declaredType != actualType) {
-				error("Actual and declared argument mismatch; argument " + fc.fd.params.get(i).varName + " of function "
-						+ fc.name + " is of type " + declaredType.toString() + ", not " + actualType.toString() + ".");
+		// check args are correct
+		if (fc.args.size() == fc.fd.params.size()) {
+			for (int i = 0; i < fc.args.size(); i++) {
+				Type declaredType = fc.fd.params.get(i).accept(this);
+				Type actualType = fc.args.get(i).accept(this);
+				if (declaredType != actualType) {
+					error("Actual and declared argument mismatch; argument " + fc.fd.params.get(i).varName
+							+ " of function " + fc.name + " is of type " + declaredType.toString() + ", not "
+							+ actualType.toString() + ".");
+				}
 			}
+		} else {
+			error("Actual and declared arguments mismatch; function " + fc.name + " takes " + fc.fd.params.size()
+					+ " arguments, not " + fc.args.size() + ".");
 		}
 
 		return fc.type;
