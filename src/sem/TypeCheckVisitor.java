@@ -77,7 +77,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		if (!p.type.CheckIfTypesAreEqualThisFunctionHasALongName(returnTypeActual)) {
 			error("Function " + p.name
 					+ " has inconsistency between declared return type and actual return type, must be "
-					+ p.type.toString()+", is "+returnTypeActual.toString());
+					+ p.type.toString() + ", is " + returnTypeActual.toString());
 		}
 		scopeStack.pop();
 		return p.type;
@@ -93,8 +93,6 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 			v.accept(this);
 		}
 
-		
-		
 		for (FunDecl v : p.funDecls) {
 			v.accept(this);
 		}
@@ -110,7 +108,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitVarExpr(VarExpr v) {
-		v.type =v.vd.type; //v.vd.accept(this);
+		v.type = v.vd.type; // v.vd.accept(this);
 		return v.type;
 	}
 
@@ -149,24 +147,29 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitFunCallExpr(FunCallExpr fc) {
-		fc.type = fc.fd.type;
-		// check args are correct
-		if (fc.args.size() == fc.fd.params.size()) {
-			for (int i = 0; i < fc.args.size(); i++) {
-				Type declaredType = fc.fd.params.get(i).accept(this);
-				Type actualType = fc.args.get(i).accept(this);
-				if (!declaredType.CheckIfTypesAreEqualThisFunctionHasALongName(actualType)) {
-					error("Actual and declared argument mismatch; argument " + fc.fd.params.get(i).varName
-							+ " of function " + fc.name + " is of type " + declaredType.toString() + ", not "
-							+ actualType.toString() + ".");
+		if (fc.fd != null) {
+			fc.type = fc.fd.type;
+			// check args are correct
+			if (fc.args.size() == fc.fd.params.size()) {
+				for (int i = 0; i < fc.args.size(); i++) {
+					Type declaredType = fc.fd.params.get(i).type;
+					Type actualType = fc.args.get(i).accept(this);
+					if (!declaredType.CheckIfTypesAreEqualThisFunctionHasALongName(actualType)) {
+						error("Actual and declared argument mismatch; argument " + fc.fd.params.get(i).varName
+								+ " of function " + fc.name + " is of type " + declaredType.toString() + ", not "
+								+ actualType.toString() + ".");
+					}
 				}
+			} else {
+				error("Actual and declared arguments mismatch; function " + fc.name + " takes " + fc.fd.params.size()
+						+ " arguments, not " + fc.args.size() + ".");
 			}
-		} else {
-			error("Actual and declared arguments mismatch; function " + fc.name + " takes " + fc.fd.params.size()
-					+ " arguments, not " + fc.args.size() + ".");
-		}
 
-		return fc.type;
+			return fc.type;
+		} else {
+			error("Function defintion for "+fc.name+" was not found");
+			return null;
+		}
 	}
 
 	@Override
