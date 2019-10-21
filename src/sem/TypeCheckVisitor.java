@@ -48,15 +48,15 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		}
 		// converting the list to set and back removes all duplicate items
 		returnVals = new LinkedList<Type>(new HashSet<Type>(returnVals));
-		Type returnType = null;
-		if (returnVals.size() != 1) {
+		Type returnType = BaseType.VOID;
+		if (returnVals.size() > 1) {
 			String e = "Multiple return types from block: ";
 			for (Type t : returnVals) {
 				e += t.toString();
 				e += ",";
 			}
 			error(e);
-		} else {
+		} else if (returnVals.size() == 1) {
 			returnType = returnVals.get(0);
 		}
 
@@ -74,10 +74,10 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 			v.accept(this);
 		}
 		Type returnTypeActual = p.block.accept(this);
-		if (p.type != returnTypeActual) {
+		if (!p.type.CheckIfTypesAreEqualThisFunctionHasALongName(returnTypeActual)) {
 			error("Function " + p.name
 					+ " has inconsistency between declared return type and actual return type, must be "
-					+ p.type.toString());
+					+ p.type.toString()+", is "+returnTypeActual.toString());
 		}
 		scopeStack.pop();
 		return p.type;
@@ -92,6 +92,9 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		for (StructTypeDecl v : p.structTypeDecls) {
 			v.accept(this);
 		}
+
+		
+		
 		for (FunDecl v : p.funDecls) {
 			v.accept(this);
 		}
@@ -107,7 +110,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitVarExpr(VarExpr v) {
-		v.type = v.vd.accept(this);
+		v.type =v.vd.type; //v.vd.accept(this);
 		return v.type;
 	}
 
@@ -146,13 +149,13 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitFunCallExpr(FunCallExpr fc) {
-		fc.type = fc.fd.accept(this);
+		fc.type = fc.fd.type;
 		// check args are correct
 		if (fc.args.size() == fc.fd.params.size()) {
 			for (int i = 0; i < fc.args.size(); i++) {
 				Type declaredType = fc.fd.params.get(i).accept(this);
 				Type actualType = fc.args.get(i).accept(this);
-				if (declaredType != actualType) {
+				if (!declaredType.CheckIfTypesAreEqualThisFunctionHasALongName(actualType)) {
 					error("Actual and declared argument mismatch; argument " + fc.fd.params.get(i).varName
 							+ " of function " + fc.name + " is of type " + declaredType.toString() + ", not "
 							+ actualType.toString() + ".");
@@ -168,8 +171,8 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitBinOp(BinOp bo) {
-		Type left = bo.type.accept(this);
-		Type right = bo.type.accept(this);
+		Type left = bo.left.accept(this);
+		Type right = bo.right.accept(this);
 
 		if (left != right) {
 			error("operands of binary operation must match,(" + left.toString() + "," + right.toString() + ")");

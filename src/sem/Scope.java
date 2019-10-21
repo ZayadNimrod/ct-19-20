@@ -31,7 +31,7 @@ public class Scope {
 
 	public void put(Symbol sym, BaseSemanticVisitor b) {
 		if (lookupCurrent(sym.name) != null) {
-			b.error("Declared symbol with same name as symbol declared in the same scope");
+			b.error("Declared symbol with same name as symbol declared in the same scope;"+sym.name);
 		}
 		symbolTable.put(sym.name, sym);
 	}

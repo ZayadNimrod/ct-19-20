@@ -1,5 +1,5 @@
 
 
-void main(){
-	return;
+char main(){
+	return 4;
 }
