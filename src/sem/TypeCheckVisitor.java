@@ -180,9 +180,9 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 		if (left != right) {
 			error("operands of binary operation must match,(" + left.toString() + "," + right.toString() + ")");
-			return null;
+			return BaseType.VOID;
 		}
-		Type ret = null;
+		Type ret = BaseType.VOID;
 		switch (bo.op) {
 		case ADD:
 			ret = left;
@@ -190,12 +190,14 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		case AND:
 			if (left != BaseType.INT) {
 				error("Logical AND only be done on operands of type Int, not " + left.toString());
+				break;
 			}
 			ret = BaseType.INT; // INTs are our substitute for proper booleans
 			break;
 		case DIV:
 			if (left != BaseType.INT) {
 				error("Division can only be done on operands of type Int, not " + left.toString());
+				break;
 			}
 
 			ret = BaseType.INT;
@@ -207,36 +209,42 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		case LT:
 			if (left != BaseType.INT) {
 				error("Comparison can only be done on operands of type Int, not " + left.toString());
+				break;
 			}
 			ret = BaseType.INT;
 			break;
 		case MOD:
 			if (left != BaseType.INT) {
 				error("Remainder division can only be done on operands of type Int, not " + left.toString());
+				break;
 			}
 			ret = BaseType.INT;
 			break;
 		case MUL:
 			if (left != BaseType.INT) {
 				error("Multiplication can only be done on operands of type Int, not " + left.toString());
+				break;
 			}
 			ret = BaseType.INT;
 			break;
 		case NE:
 			if (left != BaseType.INT) {
 				error("NOT EQUAL can only be done on operands of type Int, not " + left.toString());
+				break;
 			}
 			ret = BaseType.INT;
 			break;
 		case OR:
 			if (left != BaseType.INT) {
 				error("Logical OR can only be done on operands of type Int, not " + left.toString());
+				break;
 			}
 			ret = BaseType.INT;
 			break;
 		case SUB:
 			if (left != BaseType.INT) {
 				error("Subtraction can only be done on operands of type Int, not " + left.toString());
+				break;
 			}
 			ret = BaseType.INT;
 			break;
@@ -326,6 +334,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	public Type visitIf(If i) {
 		Type e = i.expr.accept(this);
 		if (e != BaseType.INT) {
+			System.out.print(e);
 			error("IF condition expression must evaluate to type Int, not " + e.toString());
 		}
 		// this type checking is for the same purposes as in the Block code
