@@ -308,7 +308,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	@Override
 	public Type visitExprStmt(ExprStmt e) {
 		e.expr.accept(this);
-		return BaseType.VOID;
+		return null;
 	}
 
 	@Override
@@ -348,7 +348,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 				|| a.left instanceof ValueAtExpr)) {
 			error("Cannot assign to a " + a.toString()
 					+ ", must be a variable, field, array element, or pointed to by pointer");
-			return BaseType.VOID;
+			return null;
 		}
 
 		Type left = a.left.accept(this);
@@ -360,7 +360,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		
 		}
 		// TODO: return a truth value? left side type?
-		return BaseType.VOID;
+		return null;
 	}
 
 	@Override

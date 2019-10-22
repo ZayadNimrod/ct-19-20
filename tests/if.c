@@ -5,7 +5,7 @@ void main(){
 	
 	check = read_i();
 	
-	while(){
+	if(check>3){
 		print_s("whoosh");
 	}
 }
