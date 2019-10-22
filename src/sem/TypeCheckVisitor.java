@@ -168,7 +168,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 			return fc.type;
 		} else {
 			error("Function defintion for " + fc.name + " was not found");
-			return null;
+			return BaseType.VOID;
 		}
 	}
 
@@ -250,7 +250,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		if (((ArrayType) arrayType) == null) {
 			// will this ever be reached?
 			error("Trying to access index of non-array expression, type " + arrayType.toString());
-			return null;
+			return BaseType.VOID;
 		}
 		ArrayType a = (ArrayType) arrayType;
 		ae.type = a.type;
@@ -265,7 +265,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		StructType st = (StructType) left;
 		if (st == null) {
 			error("Cannot access field of non-struct object " + left.toString());
-			return null;
+			return BaseType.VOID;
 		}
 
 		StructTypeDecl decleration = null;
@@ -275,7 +275,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 			decleration = optional.get();
 		} else {
 			error("Struct " + st.structType + " has not been defined");
-			return null;
+			return BaseType.VOID;
 		}
 
 		VarDecl member = null;
@@ -285,7 +285,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 			member = optional2.get();
 		} else {
 			error("Member " + fa.field + " does not exist in struct " + st.toString());
-			return null;
+			return BaseType.VOID;
 		}
 
 		return member.type;
@@ -308,7 +308,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	@Override
 	public Type visitExprStmt(ExprStmt e) {
 		e.expr.accept(this);
-		return null;
+		return BaseType.VOID;
 	}
 
 	@Override
@@ -348,17 +348,19 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 				|| a.left instanceof ValueAtExpr)) {
 			error("Cannot assign to a " + a.toString()
 					+ ", must be a variable, field, array element, or pointed to by pointer");
-			return null;
+			return BaseType.VOID;
 		}
 
 		Type left = a.left.accept(this);
 		Type right = a.right.accept(this);
 		if (left != right) {
+			
 			error("assignment attempts to assign an expression of type " + right.toString() + " to expression of type"
 					+ left.toString());
+		
 		}
 		// TODO: return a truth value? left side type?
-		return null;
+		return BaseType.VOID;
 	}
 
 	@Override
