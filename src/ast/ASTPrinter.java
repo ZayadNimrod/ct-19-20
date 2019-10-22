@@ -102,12 +102,8 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	public Void visitStructTypeDecl(StructTypeDecl st) {
 		writer.print("StructTypeDecl(");
 		st.structDecl.accept(this);
-		boolean first = true;
 		for (VarDecl vd : st.variables) {
-			if(!first) {
-			writer.print(",");			
-			}
-			first=false;
+			writer.print(",");		
 			vd.accept(this);
 		}
 		writer.print(")");
