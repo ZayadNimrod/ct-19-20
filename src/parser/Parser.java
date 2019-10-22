@@ -208,7 +208,9 @@ public class Parser {
 		// "[" INT_LITERAL "]"
 		int ret = 0;
 		expect(TokenClass.LSBR);
-		ret = Integer.valueOf(token.data);
+		if (accept(TokenClass.INT_LITERAL)) {
+			ret = Integer.valueOf(token.data);
+		}
 		expect(TokenClass.INT_LITERAL);
 		expect(TokenClass.RSBR);
 		return ret;
