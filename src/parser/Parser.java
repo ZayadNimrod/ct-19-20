@@ -708,25 +708,33 @@ public class Parser {
 			hasSym = true;
 		}
 
-		if(accept(TokenClass.SC)) {
+		if (accept(TokenClass.SC)) {
 			return left;
 		}
 		if (hasSym) {
 			// these operators bind most tightly, so we want to bind to the next token
 			// rather than the next expression...
 			if (!accept(TokenClass.LPAR)) {
+
 				Expr right = parseExp(false);
 				// get the next *expression that is not a binary operation*
-				Expr us =new BinOp(left, op, right);
+				Expr us = new BinOp(left, op, right);
 				return parseBinaryOps(us);
+
 			} else {
 				Expr right = parseExp();
 				return new BinOp(left, op, right);
 			}
 
 		} else {
-			Expr right = parseExp();
-			return right;
+
+			if (accept(TokenClass.RPAR)) {
+				return left;
+			} else {
+
+				Expr right = parseExp();
+				return right;
+			}
 		}
 
 	}
