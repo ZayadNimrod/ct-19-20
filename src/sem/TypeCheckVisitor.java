@@ -102,6 +102,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	@Override
 	public Type visitVarDecl(VarDecl vd) {
 		vd.type.accept(this);
+		if(vd.type==BaseType.VOID) {error("cannot create variable of void type "+vd.varName);}
 		putSymbol(new VarSymbol(vd));
 		return vd.type;
 	}
