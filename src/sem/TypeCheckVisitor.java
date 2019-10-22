@@ -102,15 +102,23 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	@Override
 	public Type visitVarDecl(VarDecl vd) {
 		vd.type.accept(this);
-		if(vd.type==BaseType.VOID) {error("cannot create variable of void type "+vd.varName);}
+		if (vd.type == BaseType.VOID) {
+			error("cannot create variable of void type " + vd.varName);
+		}
 		putSymbol(new VarSymbol(vd));
 		return vd.type;
 	}
 
 	@Override
 	public Type visitVarExpr(VarExpr v) {
-		v.type = v.vd.type; // v.vd.accept(this);
-		return v.type;
+		if (v.vd != null) {
+			v.type = v.vd.type; // v.vd.accept(this);
+			return v.type;
+		} else {
+			// variable does not exist
+			error("variable " + v.name + " does npot exist");
+			return BaseType.VOID;
+		}
 	}
 
 	@Override
@@ -364,10 +372,10 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		Type left = a.left.accept(this);
 		Type right = a.right.accept(this);
 		if (left != right) {
-			
+
 			error("assignment attempts to assign an expression of type " + right.toString() + " to expression of type"
 					+ left.toString());
-		
+
 		}
 		// TODO: return a truth value? left side type?
 		return null;
@@ -375,7 +383,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitReturn(Return r) {
-		if (r.expr!=null) {
+		if (r.expr != null) {
 			Type ret = r.expr.accept(this);
 
 			return ret;
