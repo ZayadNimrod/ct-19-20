@@ -3,7 +3,6 @@ int foo(int b){
 }
 
 
-
 int main(){
 	int a;
 	int* ptr;
@@ -11,6 +10,6 @@ int main(){
 	a =foo(a);
 	
 	ptr = (int*)mcmalloc(sizeof(int*));
-	
+	print_i(a);
 	return 1;
 }

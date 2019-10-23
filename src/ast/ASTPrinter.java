@@ -38,13 +38,17 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitFunDecl(FunDecl fd) {
 		writer.print("FunDecl(");
-		fd.type.accept(this);
+		if (fd.type != null) {
+			fd.type.accept(this);
+		}
 		writer.print("," + fd.name + ",");
 		for (VarDecl vd : fd.params) {
 			vd.accept(this);
 			writer.print(",");
 		}
-		fd.block.accept(this);
+		if (fd.block != null) {
+			fd.block.accept(this);
+		}
 		writer.print(")");
 		return null;
 	}
@@ -76,7 +80,9 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitVarDecl(VarDecl vd) {
 		writer.print("VarDecl(");
-		vd.type.accept(this);
+		if (vd.type != null) {
+			vd.type.accept(this);
+		}
 		writer.print("," + vd.varName);
 		writer.print(")");
 		return null;
@@ -92,18 +98,20 @@ public class ASTPrinter implements ASTVisitor<Void> {
 
 	@Override
 	public Void visitBaseType(BaseType bt) {
-		//writer.print("BaseType(");
+		// writer.print("BaseType(");
 		writer.print(bt);
-		//writer.print(")");
+		// writer.print(")");
 		return null;
 	}
 
 	@Override
 	public Void visitStructTypeDecl(StructTypeDecl st) {
 		writer.print("StructTypeDecl(");
-		st.structDecl.accept(this);
+		if (st.structDecl != null) {
+			st.structDecl.accept(this);
+		}
 		for (VarDecl vd : st.variables) {
-			writer.print(",");		
+			writer.print(",");
 			vd.accept(this);
 		}
 		writer.print(")");
@@ -113,7 +121,9 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitPointerType(PointerType p) {
 		writer.print("PointerType(");
-		p.pointerToType.accept(this);
+		if (p.pointerToType != null) {
+			p.pointerToType.accept(this);
+		}
 		writer.print(")");
 		return null;
 	}
@@ -129,7 +139,9 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitArrayType(ArrayType a) {
 		writer.print("ArrayType(");
-		a.type.accept(this);
+		if (a.type != null) {
+			a.type.accept(this);
+		}
 		writer.print(",");
 		writer.print(a.length);
 		writer.print(")");
@@ -175,11 +187,15 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitBinOp(BinOp op) {
 		writer.print("BinOp(");
-		op.left.accept(this);
+		if (op.left != null) {
+			op.left.accept(this);
+		}
 		writer.print(",");
 		writer.print(op.op);
 		writer.print(",");
-		op.right.accept(this);
+		if (op.right != null) {
+			op.right.accept(this);
+		}
 		writer.print(")");
 		return null;
 	}
@@ -187,9 +203,13 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitArrayAccessExpr(ArrayAccessExpr ae) {
 		writer.print("ArrayAccessExpr(");
-		ae.array.accept(this);
+		if (ae.array != null) {
+			ae.array.accept(this);
+		}
 		writer.print(",");
-		ae.index.accept(this);
+		if (ae.index != null) {
+			ae.index.accept(this);
+		}
 		writer.print(")");
 		return null;
 	}
@@ -197,7 +217,9 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitFieldAccessExpr(FieldAccessExpr fa) {
 		writer.print("FieldAccessExpr(");
-		fa.struct.accept(this);
+		if (fa.struct != null) {
+			fa.struct.accept(this);
+		}
 		writer.print(",");
 		writer.print(fa.field);
 		writer.print(")");
@@ -207,7 +229,9 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitSizeOfExpr(SizeOfExpr so) {
 		writer.print("SizeOfExpr(");
-		so.baseType.accept(this);
+		if (so.baseType != null) {
+			so.baseType.accept(this);
+		}
 		writer.print(")");
 		return null;
 	}
@@ -215,9 +239,13 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitTypecastExpr(TypecastExpr tc) {
 		writer.print("TypecastExpr(");
-		tc.to.accept(this);
+		if (tc.to != null) {
+			tc.to.accept(this);
+		}
 		writer.print(",");
-		tc.toConvert.accept(this);
+		if (tc.toConvert != null) {
+			tc.toConvert.accept(this);
+		}
 		writer.print(")");
 		return null;
 	}
@@ -225,7 +253,9 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitExprStmt(ExprStmt e) {
 		writer.print("ExprStmt(");
-		e.expr.accept(this);
+		if (e.expr != null) {
+			e.expr.accept(this);
+		}
 		writer.print(")");
 		return null;
 	}
@@ -233,9 +263,13 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitWhile(While w) {
 		writer.print("While(");
-		w.expr.accept(this);
+		if (w.expr != null) {
+			w.expr.accept(this);
+		}
 		writer.print(",");
-		w.code.accept(this);
+		if (w.code != null) {
+			w.code.accept(this);
+		}
 		writer.print(")");
 		return null;
 	}
@@ -243,9 +277,13 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitIf(If i) {
 		writer.print("If(");
-		i.expr.accept(this);
+		if (i.expr != null) {
+			i.expr.accept(this);
+		}
 		writer.print(",");
-		i.code.accept(this);
+		if (i.code != null) {
+			i.code.accept(this);
+		}
 		if (i.elseCode != null) {
 			writer.print(",");
 			i.elseCode.accept(this);
@@ -257,9 +295,13 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitAssign(Assign a) {
 		writer.print("Assign(");
-		a.left.accept(this);
+		if (a.left != null) {
+			a.left.accept(this);
+		}
 		writer.print(",");
-		a.right.accept(this);
+		if (a.right != null) {
+			a.right.accept(this);
+		}
 		writer.print(")");
 		return null;
 	}
@@ -277,7 +319,9 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitValueAtExpr(ValueAtExpr va) {
 		writer.print("ValueAtExpr(");
-		va.expr.accept(this);
+		if (va.expr != null) {
+			va.expr.accept(this);
+		}
 		writer.print(")");
 		return null;
 	}
