@@ -257,7 +257,8 @@ public class Parser {
 			ret = parseStructType();
 		}
 
-		if (accept(TokenClass.ASTERIX)) {
+		
+		while (accept(TokenClass.ASTERIX)) {
 			// this is a pointer
 			ret = new PointerType(ret);
 			expect(TokenClass.ASTERIX);
