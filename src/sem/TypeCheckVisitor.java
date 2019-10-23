@@ -264,7 +264,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	@Override
 	public Type visitArrayAccessExpr(ArrayAccessExpr ae) {
 		Type arrayType = ae.array.accept(this);
-		if (! (arrayType instanceof ArrayType)) {
+		if (!(arrayType instanceof ArrayType)) {
 			// will this ever be reached?
 			error("Trying to access index of non-array expression, type " + arrayType.toString());
 			return BaseType.VOID;
@@ -279,11 +279,12 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	public Type visitFieldAccessExpr(FieldAccessExpr fa) {
 		Type left = fa.struct.accept(this);
 		// try to find the underlying struct
-		StructType st = (StructType) left;
-		if (st == null) {
+		if (!(left instanceof StructType)) {
 			error("Cannot access field of non-struct object " + left.toString());
 			return BaseType.VOID;
 		}
+
+		StructType st = (StructType) left;
 
 		StructTypeDecl decleration = null;
 		// all this nonsense instead of a simple .where() function would have sufficed
@@ -375,7 +376,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 			error("assignment attempts to assign an expression of type " + right.toString() + " to expression of type "
 					+ left.toString());
-
+			return null;
 		}
 		// TODO: return a truth value? left side type?
 		return null;
@@ -395,10 +396,12 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	@Override
 	public Type visitValueAtExpr(ValueAtExpr va) {
 		Type t = va.expr.accept(this);
-		PointerType p = (PointerType) t;
-		if (p == null) {
+
+		if (!(t instanceof PointerType)) {
 			error("Cannot access address of non-pointer type");
+			return BaseType.VOID;
 		}
+		PointerType p = (PointerType) t;
 		va.type = p.pointerToType;
 		return va.type;
 	}

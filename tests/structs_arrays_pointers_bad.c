@@ -6,11 +6,11 @@ struct block{
 };
 
 void main(){
-	int* myPtr ;
+	int** myPtr ; //TODO: does not work with parser
 	struct block lego[4] ;
 	struct block* indirect;
 	
-	//lego[2].a = 7;
+	//lego[2].a = 7;//TODO this does not work, at parser stage
 	
-	indirect[3]=4;
+	**myPtr =7;
 }
