@@ -6,6 +6,11 @@ struct block{
 };
 
 void main(){
-	* myPtr ;
+	int* myPtr ;
 	struct block lego[4] ;
+	struct block* indirect;
+	
+	//lego[2].a = 7;
+	
+	indirect[3]=4;
 }

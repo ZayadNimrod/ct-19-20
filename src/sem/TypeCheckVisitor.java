@@ -264,7 +264,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 	@Override
 	public Type visitArrayAccessExpr(ArrayAccessExpr ae) {
 		Type arrayType = ae.array.accept(this);
-		if (((ArrayType) arrayType) == null) {
+		if (! (arrayType instanceof ArrayType)) {
 			// will this ever be reached?
 			error("Trying to access index of non-array expression, type " + arrayType.toString());
 			return BaseType.VOID;
@@ -373,7 +373,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		Type right = a.right.accept(this);
 		if (left != right) {
 
-			error("assignment attempts to assign an expression of type " + right.toString() + " to expression of type"
+			error("assignment attempts to assign an expression of type " + right.toString() + " to expression of type "
 					+ left.toString());
 
 		}
