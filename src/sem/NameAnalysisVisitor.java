@@ -230,7 +230,7 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	@Override
 	public Void visitSizeOfExpr(SizeOfExpr so) {
-		so.type.accept(this);
+		so.baseType.accept(this);
 		return null;
 	}
 

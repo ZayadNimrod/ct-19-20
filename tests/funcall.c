@@ -10,7 +10,7 @@ int main(){
 	
 	a =foo(a);
 	
-	ptr = mcmalloc(sizeof(int*));
+	ptr = (int*)mcmalloc(sizeof(int*));
 	
 	return 1;
 }
