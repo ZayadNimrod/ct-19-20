@@ -257,7 +257,6 @@ public class Parser {
 			ret = parseStructType();
 		}
 
-		
 		while (accept(TokenClass.ASTERIX)) {
 			// this is a pointer
 			ret = new PointerType(ret);
@@ -549,18 +548,26 @@ public class Parser {
 	private Expr parseArrayOrFieldAccessOrBinaryOps(Expr previous, boolean binOps) {
 		// arrayOrFieldAccessOrBinaryOps :: = (arrayAccess | fieldAccess | binaryOps |
 		// ε)
-		if (accept(TokenClass.LSBR)) {
-			return parseArrayAccess(previous);
-		} else if (accept(TokenClass.DOT)) {
-			return parseFieldAccess(previous);
-		} else if (accept(TokenClass.GT, TokenClass.LT, TokenClass.GE, TokenClass.LE, TokenClass.NE, TokenClass.EQ,
-				TokenClass.PLUS, TokenClass.MINUS, TokenClass.DIV, TokenClass.ASTERIX, TokenClass.REM, TokenClass.OR,
-				TokenClass.AND) && binOps == true) {
-			// ">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" |
-			// "&&"
-			return parseBinaryOps(previous);
+		Expr ret = previous;
+		boolean canLoop = true;
+		while (canLoop) {
+			if (accept(TokenClass.LSBR)) {
+				ret = parseArrayAccess(ret);
+			} else if (accept(TokenClass.DOT)) {
+				ret = parseFieldAccess(ret);
+			} else if (accept(TokenClass.GT, TokenClass.LT, TokenClass.GE, TokenClass.LE, TokenClass.NE, TokenClass.EQ,
+					TokenClass.PLUS, TokenClass.MINUS, TokenClass.DIV, TokenClass.ASTERIX, TokenClass.REM,
+					TokenClass.OR, TokenClass.AND) && binOps == true) {
+				// ">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" |
+				// "&&"
+				ret = parseBinaryOps(ret);
+			} else {
+				canLoop = false;
+			}
+
 		}
-		return previous;
+
+		return ret;
 	}
 
 	private ArrayAccessExpr parseArrayAccess(Expr array) {

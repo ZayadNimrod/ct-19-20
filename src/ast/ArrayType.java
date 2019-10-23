@@ -15,12 +15,12 @@ public class ArrayType implements Type {
 	}
 
 	@Override
-	public boolean CheckIfTypesAreEqualThisFunctionHasALongName(Type other) {
+	public boolean Equals(Type other) {
 		if(other instanceof ArrayType) {
 			ArrayType o = (ArrayType) other;
 			//TODO: should we really be checking for length?
 			if(o.length!=length) {return false;}
-			return (type.CheckIfTypesAreEqualThisFunctionHasALongName(o.type));
+			return (type.Equals(o.type));
 		}
 		return false;
 	}

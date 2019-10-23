@@ -8,7 +8,7 @@ public enum BaseType implements Type {
 	}
 
 	@Override
-	public boolean CheckIfTypesAreEqualThisFunctionHasALongName(Type other) {
+	public boolean Equals(Type other) {
 		return other == this;
 	}
 }

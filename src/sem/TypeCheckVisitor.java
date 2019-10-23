@@ -48,7 +48,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 		}
 		// converting the list to set and back removes all duplicate items
 		returnVals = new LinkedList<Type>(new HashSet<Type>(returnVals));
-		Type returnType = BaseType.VOID;
+		Type returnType = null;
 		if (returnVals.size() > 1) {
 			String e = "Multiple return types from block: ";
 			for (Type t : returnVals) {
@@ -74,7 +74,8 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 			v.accept(this);
 		}
 		Type returnTypeActual = p.block.accept(this);
-		if (!p.type.CheckIfTypesAreEqualThisFunctionHasALongName(returnTypeActual)) {
+		if(returnTypeActual==null) {returnTypeActual = BaseType.VOID;}
+		if (!p.type.Equals(returnTypeActual)) {
 			error("Function " + p.name
 					+ " has inconsistency between declared return type and actual return type, must be "
 					+ p.type.toString() + ", is " + returnTypeActual.toString());
@@ -163,7 +164,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 				for (int i = 0; i < fc.args.size(); i++) {
 					Type declaredType = fc.fd.params.get(i).type;
 					Type actualType = fc.args.get(i).accept(this);
-					if (!declaredType.CheckIfTypesAreEqualThisFunctionHasALongName(actualType)) {
+					if (!declaredType.Equals(actualType)) {
 						error("Actual and declared argument mismatch; argument " + fc.fd.params.get(i).varName
 								+ " of function " + fc.name + " is of type " + declaredType.toString() + ", not "
 								+ actualType.toString() + ".");
@@ -211,6 +212,8 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 			ret = BaseType.INT;
 			break;
 		case EQ:
+			ret = BaseType.INT;
+			break;
 		case GE:
 		case GT:
 		case LE:
@@ -235,11 +238,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 			}
 			ret = BaseType.INT;
 			break;
-		case NE:
-			if (left != BaseType.INT) {
-				error("NOT EQUAL can only be done on operands of type Int, not " + left.toString());
-				break;
-			}
+		case NE:			
 			ret = BaseType.INT;
 			break;
 		case OR:
@@ -288,7 +287,8 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 		StructTypeDecl decleration = null;
 		// all this nonsense instead of a simple .where() function would have sufficed
-		Optional<StructTypeDecl> optional = structs.stream().filter(x -> x.structDecl == st).findFirst();
+		Optional<StructTypeDecl> optional = structs.stream().filter(x -> (x.structDecl.Equals(st))).findFirst();
+
 		if (optional.isPresent()) {
 			decleration = optional.get();
 		} else {
@@ -298,11 +298,11 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 		VarDecl member = null;
 		List<VarDecl> members = new LinkedList<VarDecl>(decleration.variables);
-		Optional<VarDecl> optional2 = members.stream().filter(x -> x.varName == fa.field).findFirst();
+		Optional<VarDecl> optional2 = members.stream().filter(x -> x.varName.equals(fa.field)).findFirst();
 		if (optional2.isPresent()) {
 			member = optional2.get();
 		} else {
-			error("Member " + fa.field + " does not exist in struct " + st.toString());
+			error("Member " + fa.field + " does not exist in struct " + st.structType);
 			return BaseType.VOID;
 		}
 
@@ -372,7 +372,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 		Type left = a.left.accept(this);
 		Type right = a.right.accept(this);
-		if (left != right) {
+		if (!left.Equals(right)) {
 
 			error("assignment attempts to assign an expression of type " + right.toString() + " to expression of type "
 					+ left.toString());

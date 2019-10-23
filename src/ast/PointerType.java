@@ -13,11 +13,11 @@ public class PointerType implements Type {
 	}
 
 	@Override
-	public boolean CheckIfTypesAreEqualThisFunctionHasALongName(Type other) {
+	public boolean Equals(Type other) {
 		
 		if(other instanceof PointerType) {
 			PointerType o = (PointerType) other;
-			return (pointerToType.CheckIfTypesAreEqualThisFunctionHasALongName(o.pointerToType));
+			return (pointerToType.Equals(o.pointerToType));
 		}
 		return false;
 	}

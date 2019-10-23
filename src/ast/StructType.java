@@ -13,7 +13,7 @@ public class StructType implements Type {
 	}
 
 	@Override
-	public boolean CheckIfTypesAreEqualThisFunctionHasALongName(Type other) {
+	public boolean Equals(Type other) {
 		if(other instanceof StructType) {
 			StructType o = (StructType) other;
 			return structType.equals(o.structType);
