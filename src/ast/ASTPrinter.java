@@ -207,7 +207,7 @@ public class ASTPrinter implements ASTVisitor<Void> {
 	@Override
 	public Void visitSizeOfExpr(SizeOfExpr so) {
 		writer.print("SizeOfExpr(");
-		so.type.accept(this);
+		so.baseType.accept(this);
 		writer.print(")");
 		return null;
 	}
