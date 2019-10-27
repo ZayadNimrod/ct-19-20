@@ -74,7 +74,9 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 			v.accept(this);
 		}
 		Type returnTypeActual = p.block.accept(this);
-		if(returnTypeActual==null) {returnTypeActual = BaseType.VOID;}
+		if (returnTypeActual == null) {
+			returnTypeActual = BaseType.VOID;
+		}
 		if (!p.type.Equals(returnTypeActual)) {
 			error("Function " + p.name
 					+ " has inconsistency between declared return type and actual return type, must be "
@@ -191,14 +193,23 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 			error("operands of binary operation must match,(" + left.toString() + "," + right.toString() + ")");
 			return BaseType.VOID;
 		}
+		if (left == BaseType.VOID) {
+			error("operands of binary operation cannot be void");
+			return BaseType.VOID;
+		}
+
 		Type ret = BaseType.VOID;
 		switch (bo.op) {
 		case ADD:
-			ret = left;
+			if (left != BaseType.INT) {
+				error("Addition can only be done on operands of type Int, not " + left.toString());
+				break;
+			}
+			ret = BaseType.INT; // INTs are our substitute for proper booleans
 			break;
 		case AND:
 			if (left != BaseType.INT) {
-				error("Logical AND only be done on operands of type Int, not " + left.toString());
+				error("Logical AND can only be done on operands of type Int, not " + left.toString());
 				break;
 			}
 			ret = BaseType.INT; // INTs are our substitute for proper booleans
@@ -238,7 +249,7 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 			}
 			ret = BaseType.INT;
 			break;
-		case NE:			
+		case NE:
 			ret = BaseType.INT;
 			break;
 		case OR:
