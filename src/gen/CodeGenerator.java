@@ -53,15 +53,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
         writer.close();
     }
 
-    @Override
-    public Register visitBaseType(BaseType bt) {
-        return null;
-    }
-
-    @Override
-    public Register visitStructTypeDecl(StructTypeDecl st) {
-        return null;
-    }
 
     @Override
     public Register visitBlock(Block b) {
@@ -69,11 +60,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
         return null;
     }
 
-    @Override
-    public Register visitFunDecl(FunDecl p) {
-        // TODO: to complete
-        return null;
-    }
 
     @Override
     public Register visitProgram(Program p) {
@@ -90,8 +76,9 @@ public class CodeGenerator implements ASTVisitor<Register> {
     	//get the entrypoint main() function first
     	
     	List<FunDecl> funDecls = new LinkedList<FunDecl>(p.funDecls);
-    	Optional<FunDecl> maybeMain = funDecls.stream().filter(x->x.name=="main").findFirst();
+    	Optional<FunDecl> maybeMain = funDecls.stream().filter(x->x.name.equals("main")).findFirst();
     	if(!maybeMain.isPresent()) {
+    		System.out.println("program does not have a main function");
     		return null;//? will this even ever happen, we've already checked for this
     	}
     	FunDecl main = maybeMain.get();
@@ -100,25 +87,24 @@ public class CodeGenerator implements ASTVisitor<Register> {
     	
     	main.accept(this);
     	
+    	
+    	//exit properly from main
+    	writer.write("li $v0, 10\n");
+    	writer.write("syscall\n");
+    	
+    	
     	for(FunDecl f:funDecls) {
     		f.accept(this);
     	}
     	
-        // TODO: to complete
         return null;
     }
 
-    @Override
-    public Register visitVarDecl(VarDecl vd) {
-        // TODO: to complete
-        return null;
-    }
-
-    @Override
-    public Register visitVarExpr(VarExpr v) {
-        // TODO: to complete
-        return null;
-    }
+	@Override
+	public Register visitBaseType(BaseType bt) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
 	@Override
 	public Register visitPointerType(PointerType p) {
@@ -139,6 +125,24 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	}
 
 	@Override
+	public Register visitStructTypeDecl(StructTypeDecl st) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitVarDecl(VarDecl vd) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitFunDecl(FunDecl p) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
 	public Register visitIntLiteral(IntLiteral il) {
 		// TODO Auto-generated method stub
 		return null;
@@ -152,6 +156,12 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitChrLiteral(ChrLiteral cl) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitVarExpr(VarExpr v) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -227,4 +237,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+    
 }
