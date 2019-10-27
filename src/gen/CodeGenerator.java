@@ -8,6 +8,10 @@ import java.io.PrintWriter;
 import java.util.EmptyStackException;
 import java.util.Stack;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.LinkedList;
+
 public class CodeGenerator implements ASTVisitor<Register> {
 
     /*
@@ -73,6 +77,33 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
     @Override
     public Register visitProgram(Program p) {
+    	writer.write("data:\n");
+    	for(StructTypeDecl s:p.structTypeDecls) {
+    		s.accept(this);
+    	}
+    	
+    	for(VarDecl v:p.varDecls) {
+    		v.accept(this);
+    	}
+    	writer.write("text:\n");
+    	
+    	//get the entrypoint main() function first
+    	
+    	List<FunDecl> funDecls = new LinkedList<FunDecl>(p.funDecls);
+    	Optional<FunDecl> maybeMain = funDecls.stream().filter(x->x.name=="main").findFirst();
+    	if(!maybeMain.isPresent()) {
+    		return null;//? will this even ever happen, we've already checked for this
+    	}
+    	FunDecl main = maybeMain.get();
+    	//TODO: check for correct function signature (i.e no args)
+    	funDecls.remove(main);
+    	
+    	main.accept(this);
+    	
+    	for(FunDecl f:funDecls) {
+    		f.accept(this);
+    	}
+    	
         // TODO: to complete
         return null;
     }
@@ -88,4 +119,112 @@ public class CodeGenerator implements ASTVisitor<Register> {
         // TODO: to complete
         return null;
     }
+
+	@Override
+	public Register visitPointerType(PointerType p) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitStructType(StructType s) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitArrayType(ArrayType a) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitIntLiteral(IntLiteral il) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitStrLiteral(StrLiteral sl) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitChrLiteral(ChrLiteral cl) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitFunCallExpr(FunCallExpr fc) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitBinOp(BinOp bo) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitArrayAccessExpr(ArrayAccessExpr ae) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitFieldAccessExpr(FieldAccessExpr fa) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitSizeOfExpr(SizeOfExpr so) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitTypecastExpr(TypecastExpr tc) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitExprStmt(ExprStmt e) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitWhile(While w) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitIf(If i) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitAssign(Assign a) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitReturn(Return r) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Register visitValueAtExpr(ValueAtExpr va) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
