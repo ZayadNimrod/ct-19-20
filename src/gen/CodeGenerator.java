@@ -217,13 +217,13 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		// allocate a *local* variable (globals have thier own function)
 
-		// TODO: align to 4-byte boundaries
 		vd.offset = functionVarOffsets;
 		int size = getSizeOf(vd.type);
-		functionVarOffsets += size;
+		int effSize = (int)(Math.ceil(size/4.0)*4);//normalise to 4-byte boundary
+		functionVarOffsets += effSize;
 
 		// advance the stack pointer to make space for the new variable?
-		writeLine("addi " + Register.sp + ", " + Register.sp + ", -" + size);
+		writeLine("addi " + Register.sp + ", " + Register.sp + ", -" + effSize);
 		return null;
 	}
 
@@ -702,7 +702,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitWhile(While w) {
-		// TODO Auto-generated method stub
 		int id = uid();
 		String startLine = "while_start_"+id;
 		String endLine = "while_end_"+id;
@@ -722,10 +721,22 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitIf(If i) {
-		// TODO Auto-generated method stub
+		int id =uid();
+		//String positiveLine = "if_if_"+id;
+		String negativeLine = "if_else_"+id;
+		String endLine = "if_end_"+id;
+		Register condition  = i.expr.accept(this);	
+		writeLine("beqz "+condition+", "+negativeLine);		
+		//if-code starts here
+		i.code.accept(this);
+		//TODO returns?
+		writeLine("j "+ endLine);
+		//else code starts here
+		writeLine(negativeLine+":");
+		i.elseCode.accept(this);
+		//end of if statement here
+		writeLine(endLine+":");
 		
-		
-		System.out.println("NOT IMPLEMENTED IF");
 		return null;
 	}
 
@@ -740,8 +751,11 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		freeRegister(toAssign);
 
 		// TODO: write to memory
+		// TODO what is this is a global?
+		
 		// left is either a variable, a pointer, or an array or field access
 		if (a.left instanceof VarExpr) {
+			
 			Register addrRegister = getRegister();
 			VarExpr v = (VarExpr) (a.left);
 			writeLine("move " + addrRegister + ", $sp");
