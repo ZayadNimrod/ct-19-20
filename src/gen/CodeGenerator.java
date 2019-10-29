@@ -6,9 +6,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.EmptyStackException;
+import java.util.HashMap;
 import java.util.Stack;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.LinkedList;
 
@@ -18,8 +20,12 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	 * Simple register allocator.
 	 */
 
+	// TODO: comment each block?
 	// contains all the free temporary registers
 	private Stack<Register> freeRegs = new Stack<Register>();
+
+	private Map<String, StructTypeDecl> structs = new HashMap<String, StructTypeDecl>();
+	private int functionVarOffsets;
 
 	public CodeGenerator() {
 		freeRegs.addAll(Register.tmpRegs);
@@ -30,13 +36,18 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	private Register getRegister() {
 		try {
-			return freeRegs.pop();
+			Register r = freeRegs.pop();
+			return r;
 		} catch (EmptyStackException ese) {
+			System.out.println("WEEP WOOP NO REGISTERS");
 			throw new RegisterAllocationError(); // no more free registers, bad luck!
 		}
 	}
 
 	private void freeRegister(Register reg) {
+		if (reg == null) {
+			throw new RegisterAllocationError();
+		}
 		freeRegs.push(reg);
 	}
 
@@ -54,22 +65,18 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	}
 
 	@Override
-	public Register visitBlock(Block b) {
-		// TODO: to complete
-		return null;
-	}
-
-	@Override
 	public Register visitProgram(Program p) {
-		writeLine("data:");
+		writeLine(".data");
 		for (StructTypeDecl s : p.structTypeDecls) {
 			s.accept(this);
 		}
 
 		for (VarDecl v : p.varDecls) {
-			v.accept(this);
+			// v.accept(this);
+			// in this case, variable declaration is done on the heap
+			visitGlobal(v);
 		}
-		writeLine("text:");
+		writeLine(".text");
 
 		// get the entrypoint main() function first
 
@@ -85,6 +92,9 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		main.accept(this);
 
+		// TODO return values?
+		// TODO what if a void function has no return stmt
+
 		// exit properly from main
 		writeLine("li $v0, 10");
 		writeLine("syscall");
@@ -96,82 +106,232 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		return null;
 	}
 
+	private void visitGlobal(VarDecl v) {
+		// check the type of the variable.
+
+		int size = getSizeOf(v.type);
+		writeLine(v.varName + ": .space " + size);
+
+	}
+
+	private int getSizeOf(Type type) {
+
+		// if it is a pointer, allocate 1 word of memory
+		// if it is an array, fine the underlying type, and allocate its size * the
+		// length words of memory
+		// TODO struct type
+		// primitive type gets 1 word of memory
+
+		if (type == BaseType.INT || type instanceof PointerType) {
+			return 4;
+		} else if (type == BaseType.CHAR) {
+			return 1;
+		} else if (type instanceof ArrayType) {
+			return ((ArrayType) type).length * getSizeOf(((ArrayType) type).type);
+		} else if (type instanceof StructType) {
+			int cumulative = 0;
+
+			StructTypeDecl s = structs.get(((StructType) type).structType);
+			for (VarDecl v : s.variables) {
+				cumulative += getSizeOf(v.type);
+			}
+			return cumulative;
+		}
+
+		System.out.println("WARNING: OBJECT HAS NO SIZE");
+		return 0;
+
+	}
+
+	@Override
+	public Register visitBlock(Block b) {
+		for (VarDecl v : b.vars) {
+			v.accept(this);
+		}
+
+		// TODO: what if multiple return values? wait that should be in Return register
+		// instead?
+		Register ret = null;
+		for (Stmt s : b.code) {
+			Register r = s.accept(this);
+			if (r != null) {
+				ret = r;
+			}
+		}
+
+		return ret;
+	}
+
 	@Override
 	public Register visitBaseType(BaseType bt) {
+
+		System.out.println("NOT IMPLEMENTED BASETYEP");
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Register visitPointerType(PointerType p) {
+
+		System.out.println("NOT IMPLEMENTED POINTERTYPE");
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Register visitStructType(StructType s) {
+
+		System.out.println("NOT IMPLEMENTED STRUCTYPE");
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Register visitArrayType(ArrayType a) {
+
+		System.out.println("NOT IMPLEMENTED ARRAYTPE");
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Register visitStructTypeDecl(StructTypeDecl st) {
-		// TODO Auto-generated method stub
+		int offset = 0;
+		for (VarDecl v : st.variables) {
+			v.offset = offset;
+			offset += getSizeOf(v.type);
+		}
+		structs.put(st.structDecl.structType, st);
 		return null;
 	}
 
 	@Override
 	public Register visitVarDecl(VarDecl vd) {
-		// TODO Auto-generated method stub
+
+		// allocate a *local* variable (globals have thier own function)
+
+		// TODO: align to 4-byte boundaries
+		vd.offset = functionVarOffsets;
+		int size = getSizeOf(vd.type);
+		functionVarOffsets += size;
+
+		// advance the stack pointer to make space for the new variable?
+		writeLine("addi " + Register.sp + ", " + Register.sp + ", -" + size);
 		return null;
 	}
 
 	@Override
 	public Register visitFunDecl(FunDecl p) {
-		// TODO Auto-generated method stub
-		return null;
+
+		System.out.println("NOT IMPLEMENTED FUNDEC");
+		functionVarOffsets = 0;
+		writeLine("function_" + p.name + ":");
+		// TODO: prologues, et cetera...
+		// TODO: save Frame Pointer
+		// TODO: save function registers to restore later
+
+		// TODO: get arguments
+
+		// top thing on stack *should* be the arguments?
+
+		Register returnValue = p.block.accept(this);
+
+		// TODO:epilogue
+		// TODO: restore Frame Pointer
+
+		// TODO: put return value in ra?
+
+		return returnValue;
 	}
 
 	@Override
 	public Register visitIntLiteral(IntLiteral il) {
-		// TODO Auto-generated method stub
-		return null;
+		Register ret = getRegister();
+		writeLine("li " + ret + ", " + il.lit);
+		return ret;
 	}
 
 	@Override
 	public Register visitStrLiteral(StrLiteral sl) {
 		// TODO Auto-generated method stub
+		System.out.println("NOT IMPLEMENTED STRLIT");
 		return null;
 	}
 
 	@Override
 	public Register visitChrLiteral(ChrLiteral cl) {
-		// TODO Auto-generated method stub
-		return null;
+		Register ret = getRegister();
+		writeLine("li " + ret + ", " + (int) (cl.lit));
+		return ret;
 	}
 
 	@Override
 	public Register visitVarExpr(VarExpr v) {
-		// TODO Auto-generated method stub
-		return null;
+
+		// TODO: check this is not a global
+		Register value = null;
+		if (v.vd.offset == -1) {
+			// this is a global
+			value = getRegister();
+			writeLine("la " + value + ", " + v.name);
+		} else {
+			value = loadLocalVar(v.vd);
+		}
+		return value;
+	}
+
+	public Register loadLocalVar(VarDecl vd) {
+
+		// get address of variable, which is our current frame pointer+offset
+		Register addrRegister = getRegister();
+
+		writeLine("move " + addrRegister + ", $sp");
+		// writeLine("sll "+addrRegister+"")
+		// TODO do we add or subtract, since the stack counts *down*?
+		// writeLine("addi "+addrRegister+", "+addrRegister+", "+vd.offset);
+		// load variable from address
+		writeLine("lw " + addrRegister + ", " + (-vd.offset) + "(" + addrRegister + ")");
+		return addrRegister;
 	}
 
 	@Override
 	public Register visitFunCallExpr(FunCallExpr fc) {
+
+		System.out.println("NOT IMPLEMENTED FUNCALL");
+		if (fc.name.equals("print_i")) {
+			return visitPrint_i(fc);
+		}
+
 		// TODO Auto-generated method stub
+
+		// TODO: save temporaries
+
+		// TODO: put current instruction pointer on stack
+		// TODO: put args on stack
+
+		// TODO put return value in return register?
+		return null;
+	}
+
+	private Register visitPrint_i(FunCallExpr fc) {
+
+		// TODO: Scoping? v0 may be used for something?
+		Register printThis = fc.args.get(0).accept(this);
+		writeLine("move $a0, " + printThis);
+		writeLine("li $v0, 1");
+		writeLine("syscall");
+		// TODO: free up the register the calculated value is in?
+		// TODO: what is this is just a variable, will we end up freeing a register that
+		// should not be?
+		freeRegister(printThis);
 		return null;
 	}
 
 	@Override
 	public Register visitBinOp(BinOp bo) {
-		
-		//TODO: they want us to do comparision with control flow?
+		// TODO: try to do depth-first to use less registers
+		// TODO: they want us to do comparision with control flow?
+		// TODO: is this to do with short-circuiting?
 		switch (bo.op) {
 		case ADD:
 			return visitAdd(bo);
@@ -186,7 +346,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			Register result = visitLT(bo);
 			// yes, this can just result in two flips in a row
 			// oh no 4 whole instructions, wasted
-			invertRegister(result);
+			invertBool(result);
 			return result;
 		}
 		case GT:
@@ -194,7 +354,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		case LE: {
 			// inverse operation of GREATER THAN
 			Register result = visitGT(bo);
-			invertRegister(result);
+			invertBool(result);
 			return result;
 		}
 		case LT:
@@ -205,7 +365,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			return visitMul(bo);
 		case NE: {
 			Register result = visitEqual(bo);
-			invertRegister(result);
+			invertBool(result);
 			return result;
 		}
 		case OR:
@@ -231,21 +391,21 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			Register result = getRegister();/// yes we could just evaluate all the literal operations beforehand but
 											/// doing more than depth 1 seems to be more complex...
 			int value = ((IntLiteral) (bo.left)).lit + ((IntLiteral) (bo.right)).lit;
-			writeLine("li " + result.toString() + ", " + value);
+			writeLine("li " + result + ", " + value);
 			return result;
 		} else if (bo.left instanceof IntLiteral && !(bo.right instanceof IntLiteral)) {
 			// literal on left side
 			int lit = ((IntLiteral) (bo.left)).lit;
 			Register rightReg = bo.right.accept(this);
 			// use the right register as destination
-			writeLine("addi " + rightReg.toString() + ", " + rightReg.toString() + ", " + lit);
+			writeLine("addi " + rightReg + ", " + rightReg + ", " + lit);
 			return rightReg;
 		} else if (!(bo.left instanceof IntLiteral) && bo.right instanceof IntLiteral) {
 			// literal on right side
 			int lit = ((IntLiteral) (bo.right)).lit;
 			Register leftReg = bo.left.accept(this);
 			// use the left register as destination
-			writeLine("addi " + leftReg.toString() + ", " + leftReg.toString() + ", " + lit);
+			writeLine("addi " + leftReg + ", " + leftReg + ", " + lit);
 			return leftReg;
 		} else {
 			// both left and right are expressions of their own...
@@ -253,7 +413,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			Register right = bo.right.accept(this);
 			// use left register as the destination
 
-			writeLine("add " + left.toString() + ", " + left.toString() + ", " + right.toString());
+			writeLine("add " + left + ", " + left + ", " + right);
 
 			freeRegister(right);
 			return left;
@@ -269,7 +429,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			Register result = getRegister();/// yes we could just evaluate all the literal operations beforehand but
 											/// doing more than depth 1 seems to be more complex...
 			int value = ((IntLiteral) (bo.left)).lit - ((IntLiteral) (bo.right)).lit;
-			writeLine("li " + result.toString() + ", " + value);
+			writeLine("li " + result + ", " + value);
 			return result;
 
 		} else if (bo.left instanceof IntLiteral && !(bo.right instanceof IntLiteral)) {
@@ -277,14 +437,15 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			int lit = ((IntLiteral) (bo.left)).lit;
 			Register rightReg = bo.right.accept(this);
 			// use the right register as destination
-			writeLine("addi " + rightReg.toString() + ", " + rightReg.toString() + ", -" + lit);
+			writeLine("negu " + rightReg + ", " + rightReg);
+			writeLine("addi " + rightReg + ", " + rightReg + ", " + lit);
 			return rightReg;
 		} else if (!(bo.left instanceof IntLiteral) && bo.right instanceof IntLiteral) {
 			// literal on right side
 			int lit = ((IntLiteral) (bo.right)).lit;
 			Register leftReg = bo.left.accept(this);
 			// use the left register as destination
-			writeLine("addi " + leftReg.toString() + ", " + leftReg.toString() + ", -" + lit);
+			writeLine("addi " + leftReg + ", " + leftReg + ", -" + lit);
 			return leftReg;
 		} else {
 			// no subi command exists, so we have to create this expression manually, as at
@@ -293,7 +454,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			Register right = bo.right.accept(this);
 			// use left register as the destination
 
-			writeLine("addi " + left.toString() + ", " + left.toString() + ", " + right.toString());
+			writeLine("addi " + left + ", " + left + ", " + right);
 
 			freeRegister(right);
 			return left;
@@ -307,10 +468,10 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		Register right = bo.right.accept(this);
 		// use left register as the destination
 
-		writeLine("div " + left.toString() + ", " + right.toString());
-		// div value is stroed in lo, hi has mod
+		writeLine("div " + left + ", " + right);
+		// div value is stored in lo, hi has mod
 		// move divided value to left register
-		writeLine("mflo " + left.toString());
+		writeLine("mflo " + left);
 
 		freeRegister(right);
 		return left;
@@ -321,18 +482,18 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		// check this is an immediate operation
 
 		if (bo.left instanceof IntLiteral && bo.right instanceof IntLiteral) {
-			// both are int literals (ADD does not operate on anything else here)
-			Register result = getRegister();/// yes we could just evaluate all the literal operations beforehand but
-											/// doing more than depth 1 seems to be more complex...
+			// both are int literals
+			Register result = getRegister();
 			int value = ((IntLiteral) (bo.left)).lit * ((IntLiteral) (bo.right)).lit;
-			writeLine("li " + result.toString() + ", " + value);
+
+			writeLine("li " + result + ", " + value);
 			return result;
 		} else {
 			Register left = bo.left.accept(this);
 			Register right = bo.right.accept(this);
 			// use left register as the destination
 
-			writeLine("mul " + left.toString() + ", " + left.toString() + ", " + right.toString());
+			writeLine("mul " + left + ", " + left + ", " + right);
 
 			freeRegister(right);
 			return left;
@@ -346,10 +507,10 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		Register right = bo.right.accept(this);
 		// use left register as the destination
 
-		writeLine("div " + left.toString() + ", " + right.toString());
+		writeLine("div " + left + ", " + right);
 		// div value is stroed in lo, hi has mod
 		// move divided value to left register
-		writeLine("mfhi " + left.toString());
+		writeLine("mfhi " + left);
 
 		freeRegister(right);
 		return left;
@@ -364,14 +525,14 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			int lit = ((IntLiteral) (bo.left)).lit;
 			Register rightReg = bo.right.accept(this);
 			// use the right register as destination
-			writeLine("andi " + rightReg.toString() + ", " + rightReg.toString() + ", " + lit);
+			writeLine("andi " + rightReg + ", " + rightReg + ", " + lit);
 			return rightReg;
 		} else if (!(bo.left instanceof IntLiteral) && bo.right instanceof IntLiteral) {
 			// literal on right side
 			int lit = ((IntLiteral) (bo.right)).lit;
 			Register leftReg = bo.left.accept(this);
 			// use the left register as destination
-			writeLine("andi " + leftReg.toString() + ", " + leftReg.toString() + ", " + lit);
+			writeLine("andi " + leftReg + ", " + leftReg + ", " + lit);
 			return leftReg;
 		} else {
 			// both left and right are expressions of their own, or both literals
@@ -381,7 +542,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			Register right = bo.right.accept(this);
 			// use left register as the destination
 
-			writeLine("and " + left.toString() + ", " + left.toString() + ", " + right.toString());
+			writeLine("and " + left + ", " + left + ", " + right);
 
 			freeRegister(right);
 			return left;
@@ -397,14 +558,14 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			int lit = ((IntLiteral) (bo.left)).lit;
 			Register rightReg = bo.right.accept(this);
 			// use the right register as destination
-			writeLine("ori " + rightReg.toString() + ", " + rightReg.toString() + ", " + lit);
+			writeLine("ori " + rightReg + ", " + rightReg + ", " + lit);
 			return rightReg;
 		} else if (!(bo.left instanceof IntLiteral) && bo.right instanceof IntLiteral) {
 			// literal on right side
 			int lit = ((IntLiteral) (bo.right)).lit;
 			Register leftReg = bo.left.accept(this);
 			// use the left register as destination
-			writeLine("ori " + leftReg.toString() + ", " + leftReg.toString() + ", " + lit);
+			writeLine("ori " + leftReg + ", " + leftReg + ", " + lit);
 			return leftReg;
 		} else {
 			// both left and right are expressions of their own, or both literals
@@ -414,7 +575,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			Register right = bo.right.accept(this);
 			// use left register as the destination
 
-			writeLine("or " + left.toString() + ", " + left.toString() + ", " + right.toString());
+			writeLine("or " + left + ", " + left + ", " + right);
 
 			freeRegister(right);
 			return left;
@@ -430,9 +591,9 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			Register result = getRegister();
 			boolean value = ((IntLiteral) (bo.left)).lit < ((IntLiteral) (bo.right)).lit;
 			if (value) {
-				writeLine("li " + result.toString() + ", 1");
+				writeLine("li " + result + ", 1");
 			} else {
-				writeLine("li " + result.toString() + ", 0");
+				writeLine("li " + result + ", 0");
 			}
 			return result;
 		} else if (bo.left instanceof IntLiteral && !(bo.right instanceof IntLiteral)) {
@@ -440,17 +601,17 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			int lit = ((IntLiteral) (bo.left)).lit;
 			Register rightReg = bo.right.accept(this);
 			// use the right register as destination
-			writeLine("slti " + rightReg.toString() + ", " + rightReg.toString() + ", " + lit);
+			writeLine("slti " + rightReg + ", " + rightReg + ", " + lit);
 			// this returns true if the left side is larger than right side, which is wrong
 			// so we flip it
-			invertRegister(rightReg);
+			invertBool(rightReg);
 			return rightReg;
 		} else if (!(bo.left instanceof IntLiteral) && bo.right instanceof IntLiteral) {
 			// literal on right side
 			int lit = ((IntLiteral) (bo.right)).lit;
 			Register leftReg = bo.left.accept(this);
 			// use the left register as destination
-			writeLine("slti " + leftReg.toString() + ", " + leftReg.toString() + ", " + lit);
+			writeLine("slti " + leftReg + ", " + leftReg + ", " + lit);
 			return leftReg;
 		} else {
 			// both left and right are expressions of their own...
@@ -458,7 +619,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			Register right = bo.right.accept(this);
 			// use left register as the destination
 
-			writeLine("slt " + left.toString() + ", " + left.toString() + ", " + right.toString());
+			writeLine("slt " + left + ", " + left + ", " + right);
 
 			freeRegister(right);
 			return left;
@@ -474,23 +635,23 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			Register result = getRegister();
 			boolean value = ((IntLiteral) (bo.left)).lit > ((IntLiteral) (bo.right)).lit;
 			if (value) {
-				writeLine("li " + result.toString() + ", 1");
+				writeLine("li " + result + ", 1");
 			} else {
-				writeLine("li " + result.toString() + ", 0");
+				writeLine("li " + result + ", 0");
 			}
 			return result;
 		} else if (bo.left instanceof IntLiteral && !(bo.right instanceof IntLiteral)) {
 			// literal on left side
 			int lit = ((IntLiteral) (bo.left)).lit;
 			Register rightReg = bo.right.accept(this);
-			writeLine("slti " + rightReg.toString() + ", " + rightReg.toString() + ", " + lit);
+			writeLine("slti " + rightReg + ", " + rightReg + ", " + lit);
 			return rightReg;
 		} else if (!(bo.left instanceof IntLiteral) && bo.right instanceof IntLiteral) {
 			// literal on right side
 			int lit = ((IntLiteral) (bo.right)).lit;
 			Register leftReg = bo.left.accept(this);
-			writeLine("slti " + leftReg.toString() + ", " + leftReg.toString() + ", " + lit);
-			invertRegister(leftReg);
+			writeLine("slti " + leftReg + ", " + leftReg + ", " + lit);
+			invertBool(leftReg);
 			return leftReg;
 		} else {
 			// both left and right are expressions of their own...
@@ -498,7 +659,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			Register right = bo.right.accept(this);
 			// use left register as the destination
 
-			writeLine("slt " + left.toString() + ", " + right.toString() + ", " + left.toString());
+			writeLine("slt " + left + ", " + right + ", " + left);
 
 			freeRegister(right);
 			return left;
@@ -511,7 +672,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		Register right = bo.right.accept(this);
 		// use left register as the destination
 
-		writeLine("seq " + left.toString() + ", " + left.toString() + ", " + right.toString());
+		writeLine("seq " + left + ", " + left + ", " + right);
 
 		freeRegister(right);
 		return left;
@@ -520,66 +681,140 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	@Override
 	public Register visitArrayAccessExpr(ArrayAccessExpr ae) {
 		// TODO Auto-generated method stub
+
+		System.out.println("NOT IMPLEMENTED ARRAYACCESS");
 		return null;
 	}
 
 	@Override
 	public Register visitFieldAccessExpr(FieldAccessExpr fa) {
 		// TODO Auto-generated method stub
+
+		System.out.println("NOT IMPLEMENTED FIELDACCESS");
 		return null;
 	}
 
 	@Override
 	public Register visitSizeOfExpr(SizeOfExpr so) {
 		// TODO Auto-generated method stub
-		return null;
+		int size = getSizeOf(so.baseType);
+		Register reg = getRegister();
+
+		writeLine("li " + reg + ", " + size);
+
+		return reg;
 	}
 
 	@Override
 	public Register visitTypecastExpr(TypecastExpr tc) {
 		// TODO Auto-generated method stub
+
+		System.out.println("NOT IMPLEMENTED CAST");
 		return null;
 	}
 
 	@Override
 	public Register visitExprStmt(ExprStmt e) {
-		// TODO Auto-generated method stub
+		Register ret = e.expr.accept(this);
+		if (ret != null) {
+			freeRegister(ret);
+		}
 		return null;
 	}
 
 	@Override
 	public Register visitWhile(While w) {
 		// TODO Auto-generated method stub
+
+		System.out.println("NOT IMPLEMENTED WHILE");
 		return null;
 	}
 
 	@Override
 	public Register visitIf(If i) {
 		// TODO Auto-generated method stub
+		System.out.println("NOT IMPLEMENTED IF");
 		return null;
 	}
 
 	@Override
 	public Register visitAssign(Assign a) {
-		// TODO Auto-generated method stub
+		Register toAssign = a.right.accept(this);
+
+		Register assignTo = a.left.accept(this);
+
+		writeLine("move " + assignTo + ", " + toAssign);
+
+		freeRegister(toAssign);
+
+		// TODO: write to memory
+		// left is either a variable, a pointer, or an array or field access
+		if (a.left instanceof VarExpr) {
+			Register addrRegister = getRegister();
+			VarExpr v = (VarExpr) (a.left);
+			writeLine("move " + addrRegister + ", $sp");
+			writeLine("sw " + assignTo + ", " + v.vd.offset + "(" + addrRegister + ")");
+			freeRegister(addrRegister);
+		} else if (a.left instanceof FieldAccessExpr) {
+			FieldAccessExpr fae = (FieldAccessExpr) (a.left);
+			Register addrRegister = getRegister();
+			writeLine("move " + addrRegister + ", $sp");
+			int offset = -((VarExpr) (fae.struct)).vd.offset; // get addr of struct
+
+			// I hate java
+			offset -= structs.get(((StructType) (((VarExpr) (fae.struct)).vd.type)).structType).variables.stream()
+					.filter(x -> x.varName.equals(fae.field)).findFirst().get().offset; // find fields offset
+
+			writeLine("sw " + assignTo + ", " + offset + "(" + addrRegister + ")");
+			freeRegister(addrRegister);
+
+		} else if (a.left instanceof ArrayAccessExpr) {
+			// address = sp - array offset - (idx)*elemsize
+
+			ArrayAccessExpr aae = (ArrayAccessExpr) (a.left);
+			int elemsize = getSizeOf(((ArrayType) (aae.array).type).type);
+			Register addrRegister = aae.index.accept(this);
+			Register temp = getRegister();
+
+			writeLine("li " + temp + ", -" + elemsize);
+			writeLine("mul " + addrRegister + ", " + addrRegister + ", " + temp);
+			freeRegister(temp); // we have got -idx*elemsize
+
+			writeLine("add " + addrRegister + ", " + addrRegister + ", " + Register.sp);
+			// sp- idx*elemSize
+
+			VarDecl vd = ((VarExpr) (aae.array)).vd;
+			writeLine("addi " + addrRegister + ", " + addrRegister + ", -" + vd.offset);
+			// we have the address, now write to it
+			writeLine("sw " + assignTo + ", " + 0 + "(" + addrRegister + ")");
+			freeRegister(addrRegister);
+		} else {
+			// a.left is a pointer
+			System.out.println("NOT IMPLEMENTED ASSIGN TO POINTER");
+			// TODO
+
+		}
+		freeRegister(assignTo);
 		return null;
 	}
 
 	@Override
 	public Register visitReturn(Return r) {
 		// TODO Auto-generated method stub
+		System.out.println("NOT IMPLEMENTED RETURN");
 		return null;
 	}
 
 	@Override
 	public Register visitValueAtExpr(ValueAtExpr va) {
 		// TODO Auto-generated method stub
+		System.out.println("NOT IMPLEMENTED VALUEAT");
 		return null;
 	}
 
-	private void invertRegister(Register r) {
-		writeLine("addi " + r.toString() + ", " + r.toString() + ", -1");
-		writeLine("negu " + r.toString());
+	private void invertBool(Register r) {
+		writeLine("addi " + r + ", " + r + ", -1");
+		writeLine("negu " + r + ", " + r);
 	}
 
 }
