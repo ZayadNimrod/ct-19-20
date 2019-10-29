@@ -27,6 +27,13 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	private Map<String, StructTypeDecl> structs = new HashMap<String, StructTypeDecl>();
 	private int functionVarOffsets;
 
+	int uidGen = 0;
+
+	private int uid() {
+		uidGen++;
+		return uidGen;
+	}
+
 	public CodeGenerator() {
 		freeRegs.addAll(Register.tmpRegs);
 	}
@@ -518,68 +525,37 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	}
 
 	protected Register visitAnd(BinOp bo) {
-		// check this is an immediate operation
+		// ok this has to be done with control flow
+		// evaluate the left hand side
+		Register left = bo.left.accept(this);
+		// if it is false, skip the rhs
+		String endIdent = "endand_" + uid();
+		writeLine("beqz " + left + " " + endIdent);
+		Register right = bo.right.accept(this);
+		// put right into left and free the register; we know left is already True
+		writeLine("move " + left + ", " + right);
+		freeRegister(right);
+		writeLine(endIdent + ":");
+		// left is the result of our AND
 
-		if (bo.left instanceof IntLiteral && !(bo.right instanceof IntLiteral)) {
-			// literal on left side
-			int lit = ((IntLiteral) (bo.left)).lit;
-			Register rightReg = bo.right.accept(this);
-			// use the right register as destination
-			writeLine("andi " + rightReg + ", " + rightReg + ", " + lit);
-			return rightReg;
-		} else if (!(bo.left instanceof IntLiteral) && bo.right instanceof IntLiteral) {
-			// literal on right side
-			int lit = ((IntLiteral) (bo.right)).lit;
-			Register leftReg = bo.left.accept(this);
-			// use the left register as destination
-			writeLine("andi " + leftReg + ", " + leftReg + ", " + lit);
-			return leftReg;
-		} else {
-			// both left and right are expressions of their own, or both literals
-			// I feel bad about not precalculating the 2-literal AND but oh well
-			// TODO precalculate 2-literal ANDs
-			Register left = bo.left.accept(this);
-			Register right = bo.right.accept(this);
-			// use left register as the destination
-
-			writeLine("and " + left + ", " + left + ", " + right);
-
-			freeRegister(right);
-			return left;
-		}
-
+		return left;
 	}
 
 	protected Register visitOr(BinOp bo) {
-		// check this is an immediate operation
+		// ok this has to be done with control flow
+		// evaluate the left hand side
+		Register left = bo.left.accept(this);
+		// if it is true, skip the rhs
+		String endIdent = "endor_" + uid();
+		writeLine("beqz " + left + " " + endIdent);
+		Register right = bo.right.accept(this);
+		// put right into left and free the register; we know left is already false
+		writeLine("move " + left + ", " + right);
+		freeRegister(right);
+		writeLine(endIdent + ":");
+		// left is the result of our OR
 
-		if (bo.left instanceof IntLiteral && !(bo.right instanceof IntLiteral)) {
-			// literal on left side
-			int lit = ((IntLiteral) (bo.left)).lit;
-			Register rightReg = bo.right.accept(this);
-			// use the right register as destination
-			writeLine("ori " + rightReg + ", " + rightReg + ", " + lit);
-			return rightReg;
-		} else if (!(bo.left instanceof IntLiteral) && bo.right instanceof IntLiteral) {
-			// literal on right side
-			int lit = ((IntLiteral) (bo.right)).lit;
-			Register leftReg = bo.left.accept(this);
-			// use the left register as destination
-			writeLine("ori " + leftReg + ", " + leftReg + ", " + lit);
-			return leftReg;
-		} else {
-			// both left and right are expressions of their own, or both literals
-			// I feel bad about not precalculating the 2-literal AND but oh well
-			// TODO precalculate 2-literal ANDs
-			Register left = bo.left.accept(this);
-			Register right = bo.right.accept(this);
-			// use left register as the destination
-
-			writeLine("or " + left + ", " + left + ", " + right);
-
-			freeRegister(right);
-			return left;
-		}
+		return left;
 
 	}
 
