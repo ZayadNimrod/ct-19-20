@@ -525,6 +525,8 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	}
 
 	protected Register visitAnd(BinOp bo) {
+		
+		//TODO check short-circuiting works
 		// ok this has to be done with control flow
 		// evaluate the left hand side
 		Register left = bo.left.accept(this);
@@ -701,14 +703,28 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	@Override
 	public Register visitWhile(While w) {
 		// TODO Auto-generated method stub
-
-		System.out.println("NOT IMPLEMENTED WHILE");
+		int id = uid();
+		String startLine = "while_start_"+id;
+		String endLine = "while_end_"+id;
+		writeLine(startLine+":");
+		Register check = w.expr.accept(this);
+		//if the statement is false, jump to the end
+		writeLine("beqz "+check+", "+endLine);
+		freeRegister(check);
+		//TODO: returns?
+		w.code.accept(this);
+		//loop
+		writeLine("j "+startLine);
+		//endpoint of the loop
+		writeLine(endLine+":");
 		return null;
 	}
 
 	@Override
 	public Register visitIf(If i) {
 		// TODO Auto-generated method stub
+		
+		
 		System.out.println("NOT IMPLEMENTED IF");
 		return null;
 	}
