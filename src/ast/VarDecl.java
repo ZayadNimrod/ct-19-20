@@ -6,7 +6,7 @@ public class VarDecl implements ASTNode {
     
     
     //offset to frame pointer or struct in which it is declared
-    public int offset=-1;
+    public int offset=-999999999;
 
     public VarDecl(Type type, String varName) {
 	    this.type = type;

@@ -62,7 +62,13 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	public void emitProgram(Program program, File outputFile) throws FileNotFoundException {
 		writer = new PrintWriter(outputFile);
+		// create spaces for all our string literals, since I don't fancy creating them
+		// at runtime
+		StringLiteralVisitor stringLiteralAllocator = new StringLiteralVisitor();
 
+		writeLine(".data");
+
+		stringLiteralAllocator.writeStrings(program, writer);
 		visitProgram(program);
 		writer.close();
 	}
@@ -73,7 +79,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitProgram(Program p) {
-		writeLine(".data");
 		for (StructTypeDecl s : p.structTypeDecls) {
 			s.accept(this);
 		}
@@ -117,6 +122,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		// check the type of the variable.
 
 		int size = getSizeOf(v.type);
+		v.offset = -1;
 		writeLine(v.varName + ": .space " + size);
 
 	}
@@ -172,7 +178,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	@Override
 	public Register visitBaseType(BaseType bt) {
 
-		System.out.println("NOT IMPLEMENTED BASETYEP");
+		System.out.println("NOT IMPLEMENTED BASETYPE");
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -219,7 +225,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		vd.offset = functionVarOffsets;
 		int size = getSizeOf(vd.type);
-		int effSize = (int)(Math.ceil(size/4.0)*4);//normalise to 4-byte boundary
+		int effSize = (int) (Math.ceil(size / 4.0) * 4);// normalise to 4-byte boundary
 		functionVarOffsets += effSize;
 
 		// advance the stack pointer to make space for the new variable?
@@ -231,24 +237,50 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	public Register visitFunDecl(FunDecl p) {
 
 		System.out.println("NOT IMPLEMENTED FUNDEC");
-		functionVarOffsets = 0;
+		int memOffset = -4;
+		for (VarDecl v : p.params) {
+			v.offset = memOffset;
+			memOffset -= getSizeOf(v.type);
+		}
 		writeLine("function_" + p.name + ":");
-		// TODO: prologues, et cetera...
-		// TODO: save Frame Pointer
-		// TODO: save function registers to restore later
+
+		prologue();
 
 		// TODO: get arguments
 
-		// top thing on stack *should* be the arguments?
-
-		Register returnValue = p.block.accept(this);
+		p.block.accept(this);
 
 		// TODO:epilogue
-		// TODO: restore Frame Pointer
 
-		// TODO: put return value in ra?
+		return Register.v0;
+	}
 
-		return returnValue;
+	private void prologue() {
+		// do the function prologue
+
+		// set frame pointer to stack pointer
+		writeLine("move $fp $sp");
+		// TODO save function registers to restore later
+
+		// TODO find all function registers that are in use, save them (and free the
+		// registers, to reallocate later?)
+		// right now, naive implementation: save all function registers
+		// what about just saving *all* registers...
+		/*
+		 * for (int i = 0; i <= 7; i++) { writeLine("sw $s" + i + ", " + (i * 4) +
+		 * "($fp)"); // TODO but restoring these.. if (freeRegs.stream().anyMatch(x ->
+		 * x.toString() == ("$s" + 1))) { // freeRegister(freeRegs.s) } }
+		 */
+
+	}
+
+	private void epilogue() {
+		// do the function epilogue
+
+		// TODO restore function variables
+
+		// TODO restore frame pointer???? aaaaa
+
 	}
 
 	@Override
@@ -260,9 +292,10 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitStrLiteral(StrLiteral sl) {
-		// TODO Auto-generated method stub
-		System.out.println("NOT IMPLEMENTED STRLIT");
-		return null;
+		// String literals are char pointers
+		Register addr = getRegister();
+		writeLine("la " + addr + " " + sl.id);
+		return addr;
 	}
 
 	@Override
@@ -307,30 +340,129 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		System.out.println("NOT IMPLEMENTED FUNCALL");
 		if (fc.name.equals("print_i")) {
 			return visitPrint_i(fc);
+		} else if (fc.name.equals("print_s")) {
+			return visitPrint_s(fc);
+		} else if (fc.name.equals("read_i")) {
+			return visitRead_i(fc);
 		}
 
-		// TODO Auto-generated method stub
+		precall(fc);
 
-		// TODO: save temporaries
+		writeLine("jal function_" + fc.name);
 
-		// TODO: put current instruction pointer on stack
-		// TODO: put args on stack
+		postcall(fc);
 
-		// TODO put return value in return register?
-		return null;
+		return Register.v0;
+	}
+
+	private void precall(FunCallExpr fc) {
+		// save temporaries
+
+		// to get used registers, diff freeRegs with tmpRegs; this is OK, since
+		// the funCall DEFINTION has already been written, so register usage is STATIC!
+		// We can replciate this on the other end too, since the defintion is NOT being
+		// .accepted-ed, so THE REGISTERS IN USE IS IDENTICAL ACROSS THE FUNCTION CALL
+
+		// did I mention I hate java? this is supposed a simple difference function
+		List<Register> inUse = (new LinkedList<Register>(Register.tmpRegs));
+		inUse.removeAll(new LinkedList<Register>(freeRegs));
+
+		for (Register r : inUse) {
+			writeLine("sw " + r + " 0($sp)");
+			writeLine("addi $sp $sp -4");
+		}
+
+		// save old args?
+		for (Register r : Register.paramRegs) {
+			writeLine("sw " + r + " 0($sp)");
+			writeLine("addi $sp $sp -4");
+		}
+
+		// TODO save value registers s(v0,v1)
+
+		// put return address on stack
+		writeLine("sw $ra 0($sp)");
+		writeLine("addi $sp $sp -4");
+
+		// put args on stack
+
+		for (int i = 0; i < fc.args.size(); i++) {
+			Register r = fc.args.get(i).accept(this);
+			// System.out.println(fc.args.get(i));
+			if (i < 4) {
+				writeLine("move " + Register.paramRegs[i] + ", " + r);
+
+			} else {
+				// write arg to stack
+				writeLine("sw " + r + " 0($sp)");
+				writeLine("addi $sp $sp -4");
+			}
+			freeRegister(r);
+		}
+
+	}
+
+	private void postcall(FunCallExpr fc) {
+		// remove args from stack
+		for (int i = fc.args.size(); i >= 0; i--) {
+			if (i < 4) {
+				// Don't need to do anything
+			} else {
+				// pop arg off the stack
+				writeLine("addi $sp $sp 4");
+			}
+		}
+
+		// restore return address from stack
+		writeLine("addi $sp $sp 4");
+		writeLine("lw $ra 0($sp)");
+
+		// TODO restore value registers
+
+		// TODO restore old args?
+		for (Register r : Register.paramRegs) {
+			writeLine("addi $sp $sp 4");
+			writeLine("lw " + r + " 0($sp)");
+		}
+
+		// restore temporaries
+		List<Register> inUse = (new LinkedList<Register>(Register.tmpRegs));
+		inUse.removeAll(new LinkedList<Register>(freeRegs));
+
+		for (Register r : inUse) {
+			writeLine("addi $sp $sp 4");
+			writeLine("lw " + r + " 0($sp)");
+		}
 	}
 
 	private Register visitPrint_i(FunCallExpr fc) {
 
-		// TODO: Scoping? v0 may be used for something?
+		// TODO: Scoping? v0 and a0 may be used for something?
+		// TODO: save v0 and restore if after the fucntion call
 		Register printThis = fc.args.get(0).accept(this);
 		writeLine("move $a0, " + printThis);
 		writeLine("li $v0, 1");
 		writeLine("syscall");
-		// TODO: free up the register the calculated value is in?
-		// TODO: what is this is just a variable, will we end up freeing a register that
-		// should not be?
 		freeRegister(printThis);
+		return null;
+	}
+
+	private Register visitPrint_s(FunCallExpr fc) {
+		// TODO: Scoping? v0 may be used for something?
+		// TODO: save v0 and restore if after the fucntion call
+		Register printThis = fc.args.get(0).accept(this);
+		writeLine("move $a0, " + printThis);
+		writeLine("li $v0, 4");
+		writeLine("syscall");
+		freeRegister(printThis);
+		return null;
+	}
+
+	private Register visitRead_i(FunCallExpr fc) {
+		// TODO: Scoping? v0 may be used for something?
+		// TODO: save v0 and restore if after the fucntion call
+		writeLine("li $v0, 5");
+		writeLine("syscall");
 		return null;
 	}
 
@@ -525,8 +657,8 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	}
 
 	protected Register visitAnd(BinOp bo) {
-		
-		//TODO check short-circuiting works
+
+		// TODO check short-circuiting works
 		// ok this has to be done with control flow
 		// evaluate the left hand side
 		Register left = bo.left.accept(this);
@@ -658,15 +790,35 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitArrayAccessExpr(ArrayAccessExpr ae) {
-		// TODO Auto-generated method stub
-
-		System.out.println("NOT IMPLEMENTED ARRAYACCESS");
-		return null;
+		// TODO does not work for struct arrays
+		// get base address of array
+		Register baseAddress = ae.array.accept(this);
+		// get offset;
+		if (ae.index instanceof IntLiteral) {
+			// get the literal offset
+			int offset = ((IntLiteral) (ae.index)).lit;
+			// becuase we have 4-byte words
+			offset *= 4;
+			writeLine("lw " + baseAddress + ", " + offset + "(" + baseAddress + ")");
+			// we have the value!
+		} else {
+			Register offset = ae.index.accept(this);
+			writeLine("sll " + offset + ", " + offset + ", 2");
+			writeLine("add " + baseAddress + ", " + baseAddress + ", " + offset);
+			freeRegister(offset);
+			writeLine("lw " + baseAddress + ", 0(" + baseAddress + ")");
+		}
+		System.out.println("NOT FULLY IMPLEMENTED ARRAYACCESS");
+		return baseAddress;
 	}
 
 	@Override
 	public Register visitFieldAccessExpr(FieldAccessExpr fa) {
 		// TODO Auto-generated method stub
+
+		// TODO get base address
+
+		// TODO get offset of the field
 
 		System.out.println("NOT IMPLEMENTED FIELDACCESS");
 		return null;
@@ -685,10 +837,8 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitTypecastExpr(TypecastExpr tc) {
-		// TODO Auto-generated method stub
-
-		System.out.println("NOT IMPLEMENTED CAST");
-		return null;
+		// we don't ned to care about type anymore!
+		return tc.toConvert.accept(this);
 	}
 
 	@Override
@@ -703,45 +853,46 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	@Override
 	public Register visitWhile(While w) {
 		int id = uid();
-		String startLine = "while_start_"+id;
-		String endLine = "while_end_"+id;
-		writeLine(startLine+":");
+		String startLine = "while_start_" + id;
+		String endLine = "while_end_" + id;
+		writeLine(startLine + ":");
 		Register check = w.expr.accept(this);
-		//if the statement is false, jump to the end
-		writeLine("beqz "+check+", "+endLine);
+		// if the statement is false, jump to the end
+		writeLine("beqz " + check + ", " + endLine);
 		freeRegister(check);
-		//TODO: returns?
 		w.code.accept(this);
-		//loop
-		writeLine("j "+startLine);
-		//endpoint of the loop
-		writeLine(endLine+":");
+		// loop
+		writeLine("j " + startLine);
+		// endpoint of the loop
+		writeLine(endLine + ":");
 		return null;
 	}
 
 	@Override
 	public Register visitIf(If i) {
-		int id =uid();
-		//String positiveLine = "if_if_"+id;
-		String negativeLine = "if_else_"+id;
-		String endLine = "if_end_"+id;
-		Register condition  = i.expr.accept(this);	
-		writeLine("beqz "+condition+", "+negativeLine);		
-		//if-code starts here
+		int id = uid();
+		// String positiveLine = "if_if_"+id;
+		String negativeLine = "if_else_" + id;
+		String endLine = "if_end_" + id;
+		Register condition = i.expr.accept(this);
+		writeLine("beqz " + condition + ", " + negativeLine);
+		// if-code starts here
 		i.code.accept(this);
-		//TODO returns?
-		writeLine("j "+ endLine);
-		//else code starts here
-		writeLine(negativeLine+":");
-		i.elseCode.accept(this);
-		//end of if statement here
-		writeLine(endLine+":");
-		
+		writeLine("j " + endLine);
+		// else code starts here
+		if (i.elseCode != null) {
+			writeLine(negativeLine + ":");
+			i.elseCode.accept(this);
+		}
+		// end of if statement here
+		writeLine(endLine + ":");
+
 		return null;
 	}
 
 	@Override
 	public Register visitAssign(Assign a) {
+		//writeLine("START_ASSIGN:");
 		Register toAssign = a.right.accept(this);
 
 		Register assignTo = a.left.accept(this);
@@ -750,16 +901,16 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		freeRegister(toAssign);
 
-		// TODO: write to memory
+		// write to memory
 		// TODO what is this is a global?
-		
+
 		// left is either a variable, a pointer, or an array or field access
 		if (a.left instanceof VarExpr) {
-			
+
 			Register addrRegister = getRegister();
 			VarExpr v = (VarExpr) (a.left);
 			writeLine("move " + addrRegister + ", $sp");
-			writeLine("sw " + assignTo + ", " + v.vd.offset + "(" + addrRegister + ")");
+			writeLine("sw " + assignTo + ", " + (-v.vd.offset) + "(" + addrRegister + ")");
 			freeRegister(addrRegister);
 		} else if (a.left instanceof FieldAccessExpr) {
 			FieldAccessExpr fae = (FieldAccessExpr) (a.left);
@@ -775,6 +926,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			freeRegister(addrRegister);
 
 		} else if (a.left instanceof ArrayAccessExpr) {
+			// TODO: elemsize isn't a thing we can use here, it's just 4..?
 			// address = sp - array offset - (idx)*elemsize
 
 			ArrayAccessExpr aae = (ArrayAccessExpr) (a.left);
@@ -801,6 +953,8 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		}
 		freeRegister(assignTo);
+
+		//writeLine("END_ASSIGN:");
 		return null;
 	}
 
@@ -808,7 +962,9 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	public Register visitReturn(Return r) {
 		// TODO Auto-generated method stub
 		System.out.println("NOT IMPLEMENTED RETURN");
-		return null;
+		epilogue();
+		writeLine("jr $ra");
+		return Register.v0;
 	}
 
 	@Override

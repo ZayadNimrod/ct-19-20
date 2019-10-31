@@ -4,6 +4,8 @@ public class StrLiteral extends Expr {
 
 	public final String lit;
 
+	public String id;
+	
 	public StrLiteral(String l) {
 		lit = l;
 	}
