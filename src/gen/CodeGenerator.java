@@ -36,6 +36,8 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		return uidGen;
 	}
 
+	int alloced = 0;
+
 	public CodeGenerator() {
 		freeRegs.addAll(Register.tmpRegs);
 	}
@@ -115,6 +117,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		for (FunDecl f : funDecls) {
 			f.accept(this);
+			System.out.println(f.name + ":" + alloced);
 		}
 
 		return null;
@@ -160,9 +163,12 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitBlock(Block b) {
+		int size = 0;
 		for (VarDecl v : b.vars) {
 			v.accept(this);
+			size += (int) (Math.ceil(getSizeOf(v.type) / 4.0) * 4);
 		}
+		functionVarOffsets += size;
 
 		// TODO: what if multiple return values? wait that should be in Return register
 		// instead?
@@ -173,7 +179,9 @@ public class CodeGenerator implements ASTVisitor<Register> {
 				ret = r;
 			}
 		}
-
+		// free up those vars
+		writeLine("move $sp $fp");
+		functionVarOffsets -= size;
 		return ret;
 	}
 
@@ -238,7 +246,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	@Override
 	public Register visitFunDecl(FunDecl p) {
 
-		System.out.println("NOT IMPLEMENTED FUNDEC");
 		// useing the currentFunDecl is awful and annihiliates encapsulation, but I
 		// can't get p into the epilogue otherwise...
 		currentFunDecl = p;
@@ -253,28 +260,31 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		p.block.accept(this);
 
-		// TODO:epilogue
-
 		return Register.v0;
 	}
 
 	private void prologue(FunDecl p) {
+		writeLine("#prologue start");
 		// do the function prologue
+
+		// save frame pointer
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $fp 0($sp)");
 
 		// set frame pointer to stack pointer
 		writeLine("move $fp $sp");
-
 		// place arg registers on the stack - NOTE: the overflow args are just under the
 		// SP
 		for (int i = 0; i < p.params.size(); i++) {
 			if (i < 4) {
 				writeLine("addi $sp $sp -4");
 				writeLine("sw " + Register.paramRegs[i] + " 0($sp)");
-				p.params.get(i).offset = (i+1) * 4;
+				p.params.get(i).offset = (i + 1) * 4;
 			} else {
 				p.params.get(i).offset = -4 - (p.params.size() - 5) * 4;// Return Address, depth of argument
 			}
-			System.out.println(p.params.get(i).varName + " param offet " + p.params.get(i).offset);
+			// System.out.println(p.params.get(i).varName + " param offet " +
+			// p.params.get(i).offset);
 		}
 
 		// TODO save function registers to restore later
@@ -282,6 +292,9 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		// TODO find all function registers that are in use, save them (and free the
 		// registers, to reallocate later?)
 
+		// TODO: inUse in the precall/postcall also includes these...
+
+		writeLine("#prologue end");
 	}
 
 	private void epilogue() {
@@ -291,17 +304,17 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		// TODO restore function variables
 
 		// pop arg registers off the stack
-		for (int i = currentFunDecl.params.size(); i >= 0; i--) {
+		for (int i = currentFunDecl.params.size() - 1; i >= 0; i--) {
 			if (i < 4) {
-				writeLine("addi $sp $sp 4");
+				//writeLine("addi $sp $sp 4");
 			} else {
 
 			}
 		}
 
 		// restore frame pointer
-		// after the above, stack pointer should be where FP *was* before function call
-		writeLine("move $sp $fp");
+		writeLine("lw $fp 0($sp)");
+		writeLine("addi $sp $sp 4");
 
 		writeLine("#epilogue end");
 	}
@@ -344,11 +357,12 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	}
 
 	public Register loadLocalVar(VarDecl vd) {
-		System.out.println("loading local var " + vd.varName + ", offset = " + vd.offset);
+		// System.out.println("loading local var " + vd.varName + ", offset = " +
+		// vd.offset);
 		// get address of variable, which is our current frame pointer+offset
 		Register addrRegister = getRegister();
 
-		//writeLine("move " + addrRegister + ", $sp");
+		// writeLine("move " + addrRegister + ", $sp");
 		writeLine("move " + addrRegister + ", $fp");
 		// writeLine("sll "+addrRegister+"")
 		// TODO do we add or subtract, since the stack counts *down*?
@@ -361,7 +375,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	@Override
 	public Register visitFunCallExpr(FunCallExpr fc) {
 
-		System.out.println("NOT IMPLEMENTED FUNCALL");
 		if (fc.name.equals("print_i")) {
 			return visitPrint_i(fc);
 		} else if (fc.name.equals("print_s")) {
@@ -377,12 +390,14 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		Register ret = getRegister();
 		writeLine("move " + ret + ", " + Register.v0);
 
-		postcall(fc);
+		postcall(fc, ret);
 
 		return ret;
 	}
 
 	private void precall(FunCallExpr fc) {
+		writeLine("#precall begins");
+
 		// save temporaries
 
 		// to get used registers, diff freeRegs with tmpRegs; this is OK, since
@@ -400,12 +415,19 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		}
 
 		// save old args?
-		for (Register r : Register.paramRegs) {
+		for (int i = Register.paramRegs.length - 1; i >= 0; i--) {
+
+			Register r = Register.paramRegs[i];
 			writeLine("addi $sp $sp -4");
 			writeLine("sw " + r + " 0($sp)");
 		}
 
-		// TODO save value registers s(v0,v1)?
+		// save value registers (v0,v1)
+		writeLine("addi $sp $sp -4");
+		writeLine("sw " + Register.v0 + " 0($sp)");
+
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $v1 0($sp)");
 
 		// put return address on stack
 		writeLine("addi $sp $sp -4");
@@ -427,15 +449,19 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			freeRegister(r);
 		}
 
+		writeLine("#precall ends");
+
 	}
 
-	private void postcall(FunCallExpr fc) {
+	private void postcall(FunCallExpr fc, Register doNotRestore) {
 
 		writeLine("#postcall begins");
 		// remove args from stack
 		for (int i = fc.args.size(); i >= 0; i--) {
 			if (i < 4) {
-				// Don't need to do anything
+				// put back into register?
+				// writeLine("sw " + Register.paramRegs[i] + " 0($sp)");
+				// writeLine("addi $sp $sp 4");
 			} else {
 				// pop arg off the stack
 				writeLine("addi $sp $sp 4");
@@ -446,10 +472,16 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("lw $ra 0($sp)");
 		writeLine("addi $sp $sp 4");
 
-		// TODO restore value registers
+		// restore value registers
+		writeLine("lw $v1 0($sp)");
+		writeLine("addi $sp $sp 4");
 
-		// TODO restore old args?
-		for (Register r : Register.paramRegs) {
+		writeLine("lw $v0 0($sp)");
+		writeLine("addi $sp $sp 4");
+
+		// restore old args?
+		for (int i = 0; i < Register.paramRegs.length; i++) {
+			Register r = Register.paramRegs[i];
 			writeLine("lw " + r + " 0($sp)");
 			writeLine("addi $sp $sp 4");
 		}
@@ -457,6 +489,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		// restore temporaries
 		List<Register> inUse = (new LinkedList<Register>(Register.tmpRegs));
 		inUse.removeAll(new LinkedList<Register>(freeRegs));
+		inUse.remove(doNotRestore);
 
 		for (Register r : inUse) {
 			writeLine("lw " + r + " 0($sp)");
@@ -469,36 +502,58 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	private Register visitPrint_i(FunCallExpr fc) {
 
 		writeLine("#print_i");
-		// TODO: Scoping? v0 and a0 may be used for something?
-		// TODO: save v0 and restore if after the fucntion call
+		// save registers that are to be used
+
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $a0 0($sp)");
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $v0 0($sp)");
 		Register printThis = fc.args.get(0).accept(this);
-		writeLine("move $a0, " + printThis);
-		writeLine("li $v0, 1");
+		writeLine("move $a0 " + printThis);
+		writeLine("li $v0 1");
 		writeLine("syscall");
 		freeRegister(printThis);
 
+		// restore them
+
+		writeLine("lw $v0 0($sp)");
+		writeLine("addi $sp $sp 4");
+		writeLine("lw $a0 0($sp)");
+		writeLine("addi $sp $sp 4");
 		writeLine("#print_i over");
 		return null;
 	}
 
 	private Register visitPrint_s(FunCallExpr fc) {
-		// TODO: Scoping? v0 may be used for something?
-		// TODO: save v0 and restore if after the fucntion call
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $a0 0($sp)");
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $v0 0($sp)");
 		Register printThis = fc.args.get(0).accept(this);
 		writeLine("move $a0, " + printThis);
 		writeLine("li $v0, 4");
 		writeLine("syscall");
 		freeRegister(printThis);
+		writeLine("lw $v0 0($sp)");
+		writeLine("addi $sp $sp 4");
+		writeLine("lw $a0 0($sp)");
+		writeLine("addi $sp $sp 4");
 		return null;
 	}
 
 	private Register visitRead_i(FunCallExpr fc) {
-		// TODO: Scoping? v0 may be used for something?
-		// TODO: save v0 and restore if after the fucntion call
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $a0 0($sp)");
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $v0 0($sp)");
 		writeLine("li $v0, 5");
 		writeLine("syscall");
 		Register ret = getRegister();
 		writeLine("move " + ret + ", " + Register.v0);
+		writeLine("lw $v0 0($sp)");
+		writeLine("addi $sp $sp 4");
+		writeLine("lw $a0 0($sp)");
+		writeLine("addi $sp $sp 4");
 		return ret;
 	}
 
@@ -1021,6 +1076,9 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			writeLine("move " + Register.v0 + ", " + reg);
 			freeRegister(reg);
 			writeLine("#returning from function");
+
+			// throw away the locals
+			writeLine("move $sp $fp");
 			epilogue();
 			writeLine("jr $ra");
 			return Register.v0;

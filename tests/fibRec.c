@@ -4,11 +4,21 @@
  
 int fib(int n) 
 { 
-   if (n <= 1)
-      return n; 
-   print_s((char*)"fib:\n");
-   print_i(n);
-   return fib(n-1) + fib(n-2); 
+
+   	int ret;
+
+	//print_s((char*)"\nfib:");
+   	//print_i(n);
+   	
+   if (n <= 1){
+      	 return n;
+      } 
+      
+   
+   ret = fib(n-2)+ fib(n-1);
+   print_i(ret);
+   print_s((char*)" ");
+   return ret;
 } 
   
 int main () 
