@@ -33,11 +33,13 @@ la $t8 string_1
 move $a0, $t8
 li $v0, 4
 syscall
+#print_i
 move $t8, $sp
 lw $t8, 0($t8)
 move $a0, $t8
 li $v0, 1
 syscall
+#print_i over
 la $t8 string_2
 move $a0, $t8
 li $v0, 4
@@ -57,9 +59,8 @@ slt $t9, $t9, $t8
 beqz $t9, while_end_1
 move $t9, $sp
 lw $t9, -16($t9)
-slti $t9, $t9, 1
-addi $t9, $t9, -1
-negu $t9, $t9
+li $t8, 1
+slt $t9, $t8, $t9
 addi $t9, $t9, -1
 negu $t9, $t9
 beqz $t9, if_else_2
@@ -97,11 +98,13 @@ move $t8, $s7
 move $s7, $sp
 sw $t8, -8($s7)
 if_end_2:
+#print_i
 move $t8, $sp
 lw $t8, -12($t8)
 move $a0, $t8
 li $v0, 1
 syscall
+#print_i over
 la $t8 string_3
 move $a0, $t8
 li $v0, 4

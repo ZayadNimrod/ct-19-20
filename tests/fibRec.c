@@ -6,6 +6,8 @@ int fib(int n)
 { 
    if (n <= 1)
       return n; 
+   print_s((char*)"fib:\n");
+   print_i(n);
    return fib(n-1) + fib(n-2); 
 } 
   

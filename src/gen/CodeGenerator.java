@@ -28,7 +28,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	private int functionVarOffsets;
 
 	private FunDecl currentFunDecl;
-	
+
 	int uidGen = 0;
 
 	private int uid() {
@@ -239,7 +239,8 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	public Register visitFunDecl(FunDecl p) {
 
 		System.out.println("NOT IMPLEMENTED FUNDEC");
-		//useing the currentFunDecl is awful and annihiliates encapsulation, but I can't get p into the epilogue otherwise...
+		// useing the currentFunDecl is awful and annihiliates encapsulation, but I
+		// can't get p into the epilogue otherwise...
 		currentFunDecl = p;
 		int memOffset = -4;
 		for (VarDecl v : p.params) {
@@ -262,23 +263,24 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		// set frame pointer to stack pointer
 		writeLine("move $fp $sp");
-		
-		// place arg registers on the stack - NOTE: the overflow args are just under the SP
-		for(int i =0;i<p.params.size();i++) {
-			if(i<4) {
+
+		// place arg registers on the stack - NOTE: the overflow args are just under the
+		// SP
+		for (int i = 0; i < p.params.size(); i++) {
+			if (i < 4) {
 				writeLine("addi $sp $sp -4");
 				writeLine("sw " + Register.paramRegs[i] + " 0($sp)");
-				p.params.get(i).offset = i*4;
-			}else {
-				p.params.get(i).offset = - 4 - (p.params.size()-5)*4;//Return Address, depth of argument
+				p.params.get(i).offset = (i+1) * 4;
+			} else {
+				p.params.get(i).offset = -4 - (p.params.size() - 5) * 4;// Return Address, depth of argument
 			}
+			System.out.println(p.params.get(i).varName + " param offet " + p.params.get(i).offset);
 		}
-		
+
 		// TODO save function registers to restore later
 
 		// TODO find all function registers that are in use, save them (and free the
 		// registers, to reallocate later?)
-		
 
 	}
 
@@ -288,17 +290,16 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		// TODO restore function variables
 
-		
 		// pop arg registers off the stack
-		for(int i =currentFunDecl.params.size();i>=0;i--) {
-			if(i<4) {
-				writeLine("addi $sp $sp 4");				
-			}else {
-				
+		for (int i = currentFunDecl.params.size(); i >= 0; i--) {
+			if (i < 4) {
+				writeLine("addi $sp $sp 4");
+			} else {
+
 			}
 		}
-		
-		// restore frame pointer		
+
+		// restore frame pointer
 		// after the above, stack pointer should be where FP *was* before function call
 		writeLine("move $sp $fp");
 
@@ -343,11 +344,12 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	}
 
 	public Register loadLocalVar(VarDecl vd) {
-
+		System.out.println("loading local var " + vd.varName + ", offset = " + vd.offset);
 		// get address of variable, which is our current frame pointer+offset
 		Register addrRegister = getRegister();
 
-		writeLine("move " + addrRegister + ", $sp");
+		//writeLine("move " + addrRegister + ", $sp");
+		writeLine("move " + addrRegister + ", $fp");
 		// writeLine("sll "+addrRegister+"")
 		// TODO do we add or subtract, since the stack counts *down*?
 		// writeLine("addi "+addrRegister+", "+addrRegister+", "+vd.offset);
@@ -372,10 +374,10 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		writeLine("jal function_" + fc.name);
 
-		postcall(fc);
-
 		Register ret = getRegister();
 		writeLine("move " + ret + ", " + Register.v0);
+
+		postcall(fc);
 
 		return ret;
 	}
@@ -466,6 +468,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	private Register visitPrint_i(FunCallExpr fc) {
 
+		writeLine("#print_i");
 		// TODO: Scoping? v0 and a0 may be used for something?
 		// TODO: save v0 and restore if after the fucntion call
 		Register printThis = fc.args.get(0).accept(this);
@@ -473,6 +476,8 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("li $v0, 1");
 		writeLine("syscall");
 		freeRegister(printThis);
+
+		writeLine("#print_i over");
 		return null;
 	}
 
@@ -737,16 +742,17 @@ public class CodeGenerator implements ASTVisitor<Register> {
 				writeLine("li " + result + ", 0");
 			}
 			return result;
-		} else if (bo.left instanceof IntLiteral && !(bo.right instanceof IntLiteral)) {
-			// literal on left side
-			int lit = ((IntLiteral) (bo.left)).lit;
-			Register rightReg = bo.right.accept(this);
-			// use the right register as destination
-			writeLine("slti " + rightReg + ", " + rightReg + ", " + lit);
-			// this returns true if the left side is larger than right side, which is wrong
-			// so we flip it
-			invertBool(rightReg);
-			return rightReg;
+//		} else if (bo.left instanceof IntLiteral && !(bo.right instanceof IntLiteral)) {
+//			// literal on left side
+//			int lit = ((IntLiteral) (bo.left)).lit;
+//			Register rightReg = bo.right.accept(this);
+//			// use the right register as destination
+//			writeLine("slti " + rightReg + ", " + rightReg + ", " + lit);
+//			// this returns true if the left side is larger than right side, which is wrong
+//			// so we flip it
+//			invertBool(rightReg);
+//			//TODO no, this is greater than OR EQUAL TO right now
+//			return rightReg;
 		} else if (!(bo.left instanceof IntLiteral) && bo.right instanceof IntLiteral) {
 			// literal on right side
 			int lit = ((IntLiteral) (bo.right)).lit;
@@ -787,21 +793,26 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			Register rightReg = bo.right.accept(this);
 			writeLine("slti " + rightReg + ", " + rightReg + ", " + lit);
 			return rightReg;
-		} else if (!(bo.left instanceof IntLiteral) && bo.right instanceof IntLiteral) {
-			// literal on right side
-			int lit = ((IntLiteral) (bo.right)).lit;
-			Register leftReg = bo.left.accept(this);
-			writeLine("slti " + leftReg + ", " + leftReg + ", " + lit);
-			invertBool(leftReg);
-			return leftReg;
+//		} else if (!(bo.left instanceof IntLiteral) && bo.right instanceof IntLiteral) {
+//			// literal on right side
+//			int lit = ((IntLiteral) (bo.right)).lit;
+//			Register leftReg = bo.left.accept(this);
+//			writeLine("slti " + leftReg + ", " + leftReg + ", " + lit);
+//			
+//			invertBool(leftReg);
+//
+//			//TODO: no, this is greather than or equal to
+//			
+//			return leftReg;
 		} else {
 			// both left and right are expressions of their own...
+			writeLine("#gt last case");
 			Register left = bo.left.accept(this);
 			Register right = bo.right.accept(this);
 			// use left register as the destination
-
+			// TODO this is wrong?
 			writeLine("slt " + left + ", " + right + ", " + left);
-
+			writeLine("#gt last case end");
 			freeRegister(right);
 			return left;
 		}
@@ -945,13 +956,13 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 			Register addrRegister = getRegister();
 			VarExpr v = (VarExpr) (a.left);
-			writeLine("move " + addrRegister + ", $sp");
+			writeLine("move " + addrRegister + ", $fp");
 			writeLine("sw " + assignTo + ", " + (-v.vd.offset) + "(" + addrRegister + ")");
 			freeRegister(addrRegister);
 		} else if (a.left instanceof FieldAccessExpr) {
 			FieldAccessExpr fae = (FieldAccessExpr) (a.left);
 			Register addrRegister = getRegister();
-			writeLine("move " + addrRegister + ", $sp");
+			writeLine("move " + addrRegister + ", $fp");
 			int offset = -((VarExpr) (fae.struct)).vd.offset; // get addr of struct
 
 			// I hate java
@@ -974,7 +985,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			writeLine("mul " + addrRegister + ", " + addrRegister + ", " + temp);
 			freeRegister(temp); // we have got -idx*elemsize
 
-			writeLine("add " + addrRegister + ", " + addrRegister + ", " + Register.sp);
+			writeLine("add " + addrRegister + ", " + addrRegister + ", " + Register.fp);
 			// sp- idx*elemSize
 
 			VarDecl vd = ((VarExpr) (aae.array)).vd;
@@ -996,23 +1007,23 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitReturn(Return r) {
-		
+
 		// but what about return from the base function?
-		//absolutely disgustion solution but whatever
-		if(currentFunDecl.name.equals("main")) {
-			//return from main
+		// absolutely disgusting solution but whatever
+		if (currentFunDecl.name.equals("main")) {
+			// return from main
 			writeLine("#returning from main");
 			Register reg = r.expr.accept(this);
 			return reg;
-		}else {
-			//any "normal" function
-		Register reg = r.expr.accept(this);
-		writeLine("move "+Register.v0+", "+reg);
-		freeRegister(reg);
-		writeLine("#returning from function");
-		epilogue();
-		writeLine("jr $ra");
-		return Register.v0;
+		} else {
+			// any "normal" function
+			Register reg = r.expr.accept(this);
+			writeLine("move " + Register.v0 + ", " + reg);
+			freeRegister(reg);
+			writeLine("#returning from function");
+			epilogue();
+			writeLine("jr $ra");
+			return Register.v0;
 		}
 	}
 
