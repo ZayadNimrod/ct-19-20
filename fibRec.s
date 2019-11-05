@@ -8,15 +8,11 @@ move $fp $sp
 #prologue end
 addi $sp, $sp, -4
 addi $sp $sp -4
-sw $a0 0($sp)
-addi $sp $sp -4
 sw $v0 0($sp)
 li $v0, 5
 syscall
 move $t9, $v0
 lw $v0 0($sp)
-addi $sp $sp 4
-lw $a0 0($sp)
 addi $sp $sp 4
 move $t8, $fp
 lw $t8, 0($t8)
@@ -96,8 +92,7 @@ slt $t9, $s7, $t9
 addi $t9, $t9, -1
 negu $t9, $t9
 beqz $t9, if_end_1
-move $s7, $fp
-lw $s7, -4($s7)
+li $s7, 1
 move $v0, $s7
 #returning from function
 move $sp $fp

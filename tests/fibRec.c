@@ -16,8 +16,12 @@ int fib(int n)
       
    
    ret = fib(n-2)+ fib(n-1);
-   print_i(ret);
-   print_s((char*)" ");
+   //print_i(fib(n-2));
+   //print_s((char*)" ");
+   
+   //print_i(fib(n-1));
+   //print_s((char*)" ");
+   
    return ret;
 } 
   

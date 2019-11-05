@@ -169,9 +169,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			size += (int) (Math.ceil(getSizeOf(v.type) / 4.0) * 4);
 		}
 		functionVarOffsets += size;
-
-		// TODO: what if multiple return values? wait that should be in Return register
-		// instead?
+		//TODO; is thyis bit even necessary?
 		Register ret = null;
 		for (Stmt s : b.code) {
 			Register r = s.accept(this);
@@ -189,7 +187,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	public Register visitBaseType(BaseType bt) {
 
 		System.out.println("NOT IMPLEMENTED BASETYPE");
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -197,7 +194,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	public Register visitPointerType(PointerType p) {
 
 		System.out.println("NOT IMPLEMENTED POINTERTYPE");
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -205,15 +201,13 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	public Register visitStructType(StructType s) {
 
 		System.out.println("NOT IMPLEMENTED STRUCTYPE");
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public Register visitArrayType(ArrayType a) {
 
-		System.out.println("NOT IMPLEMENTED ARRAYTPE");
-		// TODO Auto-generated method stub
+		System.out.println("NOT IMPLEMENTED ARRAYTYPE");
 		return null;
 	}
 
@@ -365,7 +359,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		// writeLine("move " + addrRegister + ", $sp");
 		writeLine("move " + addrRegister + ", $fp");
 		// writeLine("sll "+addrRegister+"")
-		// TODO do we add or subtract, since the stack counts *down*?
+		// do we add or subtract, since the stack counts *down*?
 		// writeLine("addi "+addrRegister+", "+addrRegister+", "+vd.offset);
 		// load variable from address
 		writeLine("lw " + addrRegister + ", " + (-vd.offset) + "(" + addrRegister + ")");
@@ -383,6 +377,9 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			return visitRead_i(fc);
 		}
 
+		//TODO: what about structType arguments, can't put those in an arg
+		
+		
 		precall(fc);
 
 		writeLine("jal function_" + fc.name);
@@ -543,16 +540,12 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	private Register visitRead_i(FunCallExpr fc) {
 		writeLine("addi $sp $sp -4");
-		writeLine("sw $a0 0($sp)");
-		writeLine("addi $sp $sp -4");
 		writeLine("sw $v0 0($sp)");
 		writeLine("li $v0, 5");
 		writeLine("syscall");
 		Register ret = getRegister();
 		writeLine("move " + ret + ", " + Register.v0);
 		writeLine("lw $v0 0($sp)");
-		writeLine("addi $sp $sp 4");
-		writeLine("lw $a0 0($sp)");
 		writeLine("addi $sp $sp 4");
 		return ret;
 	}
@@ -923,7 +916,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitSizeOfExpr(SizeOfExpr so) {
-		// TODO Auto-generated method stub
 		int size = getSizeOf(so.baseType);
 		Register reg = getRegister();
 
@@ -1087,14 +1079,22 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitValueAtExpr(ValueAtExpr va) {
-		// TODO Auto-generated method stub
-		System.out.println("NOT IMPLEMENTED VALUEAT");
-		return null;
+		Register address = va.expr.accept(this);
+		writeLine("lw "+address+"0("+address+")");
+		return address;
 	}
 
 	private void invertBool(Register r) {
 		writeLine("addi " + r + ", " + r + ", -1");
 		writeLine("negu " + r + ", " + r);
 	}
+	
+//	private void popToStack() {
+//		incrementStack();
+//	}
+//	
+//	private void incrementStack() {
+//		
+//	}
 
 }
