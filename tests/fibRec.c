@@ -5,23 +5,29 @@
 int fib(int n) 
 { 
 
-   	int ret;
+   int ret;
 
-	//print_s((char*)"\nfib:");
-   	//print_i(n);
-   	
+
+   //print_s((char*)",goto ");
+   //print_i(n);
+
    if (n <= 1){
+    	 //print_s((char*)" ");
+   		 //print_i(n);
       	 return n;
       } 
       
    
-   ret = fib(n-2)+ fib(n-1);
-   //print_i(fib(n-2));
-   //print_s((char*)" ");
+   ret = fib(n-2);
+   //((char*)" n ="); 
+   //print_i(n); //TODO: n has been decremented somehow???
+   ret = ret+fib(n-1);
    
-   //print_i(fib(n-1));
+ 
    //print_s((char*)" ");
+   //print_i(ret);
    
+   //ret = fib(n-2)+fib(n-1); this works tho
    return ret;
 } 
   

@@ -1,6 +1,5 @@
 #include "minic-stdlib.h"
 
-void main() {
   int n;
   int first;
   int second;
@@ -8,8 +7,11 @@ void main() {
   int c;
   char t;
 
+void main() {
+  
+
   // read n from the standard input
-  n =  10;//read_i();
+  n = read_i();
   
   first = 0;
   second = 1;

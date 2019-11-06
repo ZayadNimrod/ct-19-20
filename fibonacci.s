@@ -2,35 +2,43 @@
 string_1: .asciiz "First "
 string_2: .asciiz " terms of Fibonacci series are : "
 string_3: .asciiz " "
+n: .space 4
+first: .space 4
+second: .space 4
+next: .space 4
+c: .space 4
+t: .space 1
 .text
 function_main:
 #prologue start
+addi $sp $sp -4
+sw $fp 0($sp)
 move $fp $sp
 #prologue end
-addi $sp, $sp, -4
-addi $sp, $sp, -4
-addi $sp, $sp, -4
-addi $sp, $sp, -4
-addi $sp, $sp, -4
-addi $sp, $sp, -4
-li $t9, 10
-move $t8, $fp
-lw $t8, 0($t8)
+#read_i
+addi $sp $sp -4
+sw $v0 0($sp)
+li $v0, 5
+syscall
+move $t9, $v0
+lw $v0 0($sp)
+addi $sp $sp 4
+#read_i ends
+la $t8, n
 move $t8, $t9
 move $t9, $fp
-sw $t8, 0($t9)
+sw $t8, 1($t9)
 li $t8, 0
-move $t9, $fp
-lw $t9, -4($t9)
+la $t9, first
 move $t9, $t8
 move $t8, $fp
-sw $t9, -4($t8)
+sw $t9, 1($t8)
 li $t9, 1
-move $t8, $fp
-lw $t8, -8($t8)
+la $t8, second
 move $t8, $t9
 move $t9, $fp
-sw $t8, -8($t9)
+sw $t8, 1($t9)
+#print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
@@ -43,13 +51,13 @@ lw $v0 0($sp)
 addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
+#print_s ends
 #print_i
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-move $t8, $fp
-lw $t8, 0($t8)
+la $t8, n
 move $a0 $t8
 li $v0 1
 syscall
@@ -58,6 +66,7 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_i over
+#print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
@@ -70,70 +79,57 @@ lw $v0 0($sp)
 addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
+#print_s ends
 li $t8, 0
-move $t9, $fp
-lw $t9, -16($t9)
+la $t9, c
 move $t9, $t8
 move $t8, $fp
-sw $t9, -16($t8)
+sw $t9, 1($t8)
 while_start_1:
-move $t9, $fp
-lw $t9, -16($t9)
-move $t8, $fp
-lw $t8, 0($t8)
+la $t9, c
+la $t8, n
 slt $t9, $t9, $t8
 beqz $t9, while_end_1
 #gt last case
-move $t9, $fp
-lw $t9, -16($t9)
+la $t9, c
 li $t8, 1
 slt $t9, $t8, $t9
 #gt last case end
 addi $t9, $t9, -1
 negu $t9, $t9
 beqz $t9, if_else_2
-move $t8, $fp
-lw $t8, -16($t8)
-move $s7, $fp
-lw $s7, -12($s7)
+la $t8, c
+la $s7, next
 move $s7, $t8
 move $t8, $fp
-sw $s7, -12($t8)
+sw $s7, 1($t8)
 j if_end_2
 if_else_2:
-move $s7, $fp
-lw $s7, -4($s7)
-move $t8, $fp
-lw $t8, -8($t8)
+la $s7, first
+la $t8, second
 add $s7, $s7, $t8
-move $t8, $fp
-lw $t8, -12($t8)
+la $t8, next
 move $t8, $s7
 move $s7, $fp
-sw $t8, -12($s7)
-move $t8, $fp
-lw $t8, -8($t8)
-move $s7, $fp
-lw $s7, -4($s7)
+sw $t8, 1($s7)
+la $t8, second
+la $s7, first
 move $s7, $t8
 move $t8, $fp
-sw $s7, -4($t8)
-move $s7, $fp
-lw $s7, -12($s7)
-move $t8, $fp
-lw $t8, -8($t8)
+sw $s7, 1($t8)
+la $s7, next
+la $t8, second
 move $t8, $s7
 move $s7, $fp
-sw $t8, -8($s7)
-addi $sp $sp 0
+sw $t8, 1($s7)
+move $sp $fp
 if_end_2:
 #print_i
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-move $t8, $fp
-lw $t8, -12($t8)
+la $t8, next
 move $a0 $t8
 li $v0 1
 syscall
@@ -142,6 +138,7 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_i over
+#print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
@@ -154,17 +151,16 @@ lw $v0 0($sp)
 addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
-move $t8, $fp
-lw $t8, -16($t8)
+#print_s ends
+la $t8, c
 addi $t8, $t8, 1
-move $s7, $fp
-lw $s7, -16($s7)
+la $s7, c
 move $s7, $t8
 move $t8, $fp
-sw $s7, -16($t8)
-addi $sp $sp 0
+sw $s7, 1($t8)
+move $sp $fp
 j while_start_1
 while_end_1:
-addi $sp $sp 24
+move $sp $fp
 li $v0, 10
 syscall

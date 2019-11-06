@@ -72,7 +72,6 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	@Override
 	public Void visitBaseType(BaseType bt) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -84,7 +83,6 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	@Override
 	public Void visitStructType(StructType s) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
