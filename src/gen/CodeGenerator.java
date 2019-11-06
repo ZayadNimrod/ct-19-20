@@ -67,13 +67,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	public void emitProgram(Program program, File outputFile) throws FileNotFoundException {
 		writer = new PrintWriter(outputFile);
-		// create spaces for all our string literals, since I don't fancy creating them
-		// at runtime
-		StringLiteralVisitor stringLiteralAllocator = new StringLiteralVisitor();
 
-		writeLine(".data");
-
-		stringLiteralAllocator.writeStrings(program, writer);
 		visitProgram(program);
 
 		System.out.println("All registers returned: " + (freeRegs.size() == Register.tmpRegs.size()));
@@ -86,6 +80,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitProgram(Program p) {
+		writeLine(".data");
 		for (StructTypeDecl s : p.structTypeDecls) {
 			s.accept(this);
 		}
@@ -95,6 +90,13 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			// in this case, variable declaration is done on the heap
 			visitGlobal(v);
 		}
+		// create spaces for all our string literals, since I don't fancy creating them
+		// at runtime
+		//for some reason if we do this before the global variable adreses it breaks
+		StringLiteralVisitor stringLiteralAllocator = new StringLiteralVisitor();
+
+		stringLiteralAllocator.writeStrings(p, writer);
+
 		writeLine(".text");
 
 		// get the entrypoint main() function first
@@ -120,7 +122,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		for (FunDecl f : funDecls) {
 			f.accept(this);
-			System.out.println(f.name + ":" + alloced);
 		}
 
 		return null;
@@ -130,6 +131,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		// check the type of the variable.
 
 		int size = getSizeOf(v.type);
+		size = (int) Math.ceil(size / 4.0) * 4;
 		v.offset = -1;
 		writeLine(v.varName + ": .space " + size);
 
@@ -148,7 +150,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		} else if (type == BaseType.CHAR) {
 			return 1;
 		} else if (type instanceof ArrayType) {
-			return ((ArrayType) type).length * getSizeOf(((ArrayType) type).type);
+			return ((ArrayType) type).length; // *getSizeOf(((ArrayType) type).type);
 		} else if (type instanceof StructType) {
 			int cumulative = 0;
 
@@ -243,7 +245,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitFunDecl(FunDecl p) {
-		System.out.println("FUNCTION " + p.name);
 		// useing the currentFunDecl is awful and annihiliates encapsulation, but I
 		// can't get p into the epilogue otherwise...
 		currentFunDecl = p;
@@ -281,8 +282,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			} else {
 				p.params.get(i).offset = -4 - (p.params.size() - 5) * 4;// Return Address, depth of argument
 			}
-			// System.out.println(p.params.get(i).varName + " param offet " +
-			// p.params.get(i).offset);
 		}
 
 		// TODO save function registers to restore later
@@ -319,7 +318,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("lw $fp 0($sp)");
 		writeLine("addi $sp $sp 4");
 
-		
 		writeLine("#epilogue end");
 
 		writeLine("jr $ra");
@@ -353,9 +351,11 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		// check this is not a global
 		Register value = null;
 		if (v.vd.offset == -1) {
+
 			// this is a global
 			value = getRegister();
 			writeLine("la " + value + ", " + v.name);
+			writeLine("lw " + value + ", (" + value + ")");
 		} else {
 			value = loadLocalVar(v.vd);
 		}
@@ -368,11 +368,8 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		// get address of variable, which is our current frame pointer+offset
 		Register addrRegister = getRegister();
 
-		System.out.println("Variable "+vd.varName+": offset "+vd.offset);
-		
-		
-		
-		// writeLine("move " + addrRegister + ", $sp");
+		// System.out.println("Variable " + vd.varName + ": offset " + vd.offset);
+
 		writeLine("move " + addrRegister + ", $fp");
 		// writeLine("sll "+addrRegister+"")
 		// do we add or subtract, since the stack counts *down*?
@@ -384,7 +381,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitFunCallExpr(FunCallExpr fc) {
-		//System.out.println("calling " + fc.fd.name);
 		if (fc.name.equals("print_i")) {
 			return visitPrint_i(fc);
 		} else if (fc.name.equals("print_s")) {
@@ -403,14 +399,12 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("move " + ret + ", " + Register.v0);
 
 		postcall(fc, ret);
-		//System.out.println("finished with " + fc.fd.name);
+
 		return ret;
 	}
 
 	private void precall(FunCallExpr fc) {
 		writeLine("#precall begins");
-
-		// TODO: what is our frame pointer?
 
 		// save temporaries
 
@@ -537,7 +531,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("lw $a0 0($sp)");
 		writeLine("addi $sp $sp 4");
 		writeLine("#print_i over");
-		System.out.println("finished with " + fc.fd.name);
 		return null;
 	}
 
@@ -557,7 +550,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("lw $a0 0($sp)");
 		writeLine("addi $sp $sp 4");
 		writeLine("#print_s ends");
-		System.out.println("finished with " + fc.fd.name);
 		return null;
 	}
 
@@ -1017,7 +1009,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		Register toAssign = a.right.accept(this);
 
-		Register assignTo = a.left.accept(this);
+		Register assignTo = getRegister();// a.left.accept(this);
 
 		writeLine("move " + assignTo + ", " + toAssign);
 
@@ -1028,15 +1020,26 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		// left is either a variable, a pointer, or an array or field access
 		if (a.left instanceof VarExpr) {
 
-			Register addrRegister = getRegister();
 			VarExpr v = (VarExpr) (a.left);
 
-			System.out.println(
-					"assignment to: " + v.name + ", to " + a.right.toString() + " in function " + currentFunDecl.name);
+			// System.out.println("assignment to: " + v.name + ", to " + a.right.toString()
+			// + " in function " + currentFunDecl.name);
 
-			writeLine("move " + addrRegister + ", $fp");
-			writeLine("sw " + assignTo + ", " + (-v.vd.offset) + "(" + addrRegister + ")");
-			freeRegister(addrRegister);
+			if (v.vd.offset == -1) {
+				// global variable
+				Register addr = getRegister();
+				writeLine("la " + addr + " " + v.vd.varName);
+				writeLine("sw " + assignTo + " 0(" + addr + ")");
+				freeRegister(addr);
+			} else {
+				// local variable
+
+				Register addrRegister = getRegister();
+				writeLine("move " + addrRegister + ", $fp");
+				writeLine("sw " + assignTo + ", " + (-v.vd.offset) + "(" + addrRegister + ")");
+				freeRegister(addrRegister);
+			}
+
 		} else if (a.left instanceof FieldAccessExpr) {
 			FieldAccessExpr fae = (FieldAccessExpr) (a.left);
 			Register addrRegister = getRegister();

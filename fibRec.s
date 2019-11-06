@@ -16,8 +16,6 @@ move $t9, $v0
 lw $v0 0($sp)
 addi $sp $sp 4
 #read_i ends
-move $t8, $fp
-lw $t8, 0($t8)
 move $t8, $t9
 move $t9, $fp
 sw $t8, 0($t9)
@@ -145,8 +143,6 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #postcall ends
-move $t9, $fp
-lw $t9, -8($t9)
 move $t9, $t8
 move $t8, $fp
 sw $t9, -8($t8)
@@ -195,8 +191,6 @@ lw $t9 0($sp)
 addi $sp $sp 4
 #postcall ends
 add $t9, $t9, $t8
-move $t8, $fp
-lw $t8, -8($t8)
 move $t8, $t9
 move $t9, $fp
 sw $t8, -8($t9)
