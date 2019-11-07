@@ -6,7 +6,7 @@ next: .space 4
 c: .space 4
 t: .space 4
 string_1: .asciiz "First "
-string_2: .asciiz " terms of Fibonacci series are :\n "
+string_2: .asciiz " terms of Fibonacci series are : "
 string_3: .asciiz " "
 .text
 function_main:

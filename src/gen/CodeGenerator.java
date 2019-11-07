@@ -92,7 +92,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		}
 		// create spaces for all our string literals, since I don't fancy creating them
 		// at runtime
-		//for some reason if we do this before the global variable adreses it breaks
+		// for some reason if we do this before the global variable adreses it breaks
 		StringLiteralVisitor stringLiteralAllocator = new StringLiteralVisitor();
 
 		stringLiteralAllocator.writeStrings(p, writer);
@@ -128,7 +128,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	}
 
 	private void visitGlobal(VarDecl v) {
-		// check the type of the variable.
+		// TODO check the type of the variable.
 
 		int size = getSizeOf(v.type);
 		size = (int) Math.ceil(size / 4.0) * 4;
@@ -150,7 +150,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		} else if (type == BaseType.CHAR) {
 			return 1;
 		} else if (type instanceof ArrayType) {
-			return ((ArrayType) type).length; // *getSizeOf(((ArrayType) type).type);
+			return ((ArrayType) type).length * getSizeOf(((ArrayType) type).type);
 		} else if (type instanceof StructType) {
 			int cumulative = 0;
 
@@ -169,11 +169,12 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	@Override
 	public Register visitBlock(Block b) {
 		int size = 0;
+
 		for (VarDecl v : b.vars) {
 			v.accept(this);
 			size += (int) (Math.ceil(getSizeOf(v.type) / 4.0) * 4);
 		}
-		functionVarOffsets += size;
+		// functionVarOffsets += size;
 		// TODO; is that bit even necessary?
 		Register ret = null;
 		for (Stmt s : b.code) {
@@ -184,7 +185,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		}
 
 		// free up those vars
-		writeLine("move $sp $fp");
+		writeLine("addi $sp $sp " + size);
 		functionVarOffsets -= size;
 		return ret;
 	}
@@ -232,11 +233,10 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	public Register visitVarDecl(VarDecl vd) {
 
 		// allocate a *local* variable (globals have thier own function)
-
-		vd.offset = functionVarOffsets;
 		int size = getSizeOf(vd.type);
 		int effSize = (int) (Math.ceil(size / 4.0) * 4);// normalise to 4-byte boundary
 		functionVarOffsets += effSize;
+		vd.offset = functionVarOffsets;
 
 		// advance the stack pointer to make space for the new variable?
 		writeLine("addi " + Register.sp + ", " + Register.sp + ", -" + effSize);
@@ -247,17 +247,14 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	public Register visitFunDecl(FunDecl p) {
 		// useing the currentFunDecl is awful and annihiliates encapsulation, but I
 		// can't get p into the epilogue otherwise...
+
+		functionVarOffsets = 0;
 		currentFunDecl = p;
-		for (VarDecl v : p.params) {
-			v.offset = -functionVarOffsets;
-			functionVarOffsets += getSizeOf(v.type);
-		}
 		writeLine("function_" + p.name + ":");
 
 		prologue(p);
 
 		p.block.accept(this);
-		// TODO: we are not freeing up all registers?
 
 		return Register.v0;
 	}
@@ -274,13 +271,16 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("move $fp $sp");
 		// place arg registers on the stack - NOTE: the overflow args are just under the
 		// SP
+
 		for (int i = 0; i < p.params.size(); i++) {
 			if (i < 4) {
 				writeLine("addi $sp $sp -4");
 				writeLine("sw " + Register.paramRegs[i] + " 0($sp)");
 				p.params.get(i).offset = (i + 1) * 4;
+				functionVarOffsets += 4;
 			} else {
 				p.params.get(i).offset = -4 - (p.params.size() - 5) * 4;// Return Address, depth of argument
+				functionVarOffsets += 4;
 			}
 		}
 
@@ -347,9 +347,8 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitVarExpr(VarExpr v) {
-		//TODO check with sizes?
-		
-		
+		// TODO check with sizes?
+
 		// check this is not a global
 		Register value = null;
 		if (v.vd.offset == -1) {
@@ -389,6 +388,10 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			return visitPrint_s(fc);
 		} else if (fc.name.equals("read_i")) {
 			return visitRead_i(fc);
+		} else if (fc.name.equals("read_c")) {
+			return visitRead_c(fc);
+		} else if (fc.name.equals("print_c")) {
+			return visitPrint_c(fc);
 		}
 
 		// TODO: what about struct arguments, can't put those in an arg
@@ -567,6 +570,68 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("addi $sp $sp 4");
 		writeLine("#read_i ends");
 		return ret;
+	}
+
+	private Register visitRead_c(FunCallExpr fc) {
+		writeLine("#read_i");
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $v0 0($sp)");
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $a1 0($sp)");
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $a0 0($sp)");
+
+		writeLine("addi $sp $sp -4");
+		writeLine("move $a0 $sp");
+		writeLine("li $v0, 8");
+		writeLine("li $a1, 1");
+		// get buffer to write to
+
+		writeLine("syscall");
+		Register ret = getRegister();
+
+		writeLine("lw " + ret + ", 0($sp)");
+
+		writeLine("addi $sp $sp 4");
+		writeLine("lw $a0 0($sp)");
+		writeLine("addi $sp $sp 4");
+		writeLine("lw $a1 0($sp)");
+		writeLine("addi $sp $sp 4");
+		writeLine("lw $v0 0($sp)");
+		writeLine("addi $sp $sp 4");
+		writeLine("#read_i ends");
+		return ret;
+	}
+
+	private Register visitPrint_c(FunCallExpr fc) {
+
+		writeLine("#print_i");
+		// save registers that are to be used
+
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $a0 0($sp)");
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $v0 0($sp)");
+
+		Register printThis = fc.args.get(0).accept(this);
+		writeLine("addi $sp $sp -4");
+		writeLine("sw " + printThis + " 0($sp)");
+
+		writeLine("move $a0 $sp");
+		writeLine("li $v0 1");
+		writeLine("syscall");
+		freeRegister(printThis);
+
+		// restore them
+		writeLine("addi $sp $sp 4");
+		
+		
+		writeLine("lw $v0 0($sp)");
+		writeLine("addi $sp $sp 4");
+		writeLine("lw $a0 0($sp)");
+		writeLine("addi $sp $sp 4");
+		writeLine("#print_i over");
+		return null;
 	}
 
 	@Override
@@ -925,14 +990,24 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitFieldAccessExpr(FieldAccessExpr fa) {
-		// TODO Auto-generated method stub
 
-		// TODO get base address
+		FieldAccessExpr fae = (FieldAccessExpr) (fa.struct);
 
-		// TODO get offset of the field
+		// get base address
+		Register baseAddrRegister = getRegister();
+		writeLine("move " + baseAddrRegister + ", $fp");
 
-		System.out.println("NOT IMPLEMENTED FIELDACCESS");
-		return null;
+		// get offset of the field
+
+		int offset = -((VarExpr) (fae.struct)).vd.offset; // get addr of struct
+
+		// I hate java
+		offset -= structs.get(((StructType) (((VarExpr) (fae.struct)).vd.type)).structType).variables.stream()
+				.filter(x -> x.varName.equals(fae.field)).findFirst().get().offset; // find fields offset
+
+		writeLine("lw " + baseAddrRegister + ", " + offset + "(" + baseAddrRegister + ")");
+
+		return baseAddrRegister;
 	}
 
 	@Override
@@ -1043,6 +1118,8 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			}
 
 		} else if (a.left instanceof FieldAccessExpr) {
+			// TODO what about nested structs
+
 			FieldAccessExpr fae = (FieldAccessExpr) (a.left);
 			Register addrRegister = getRegister();
 			writeLine("move " + addrRegister + ", $fp");
@@ -1056,7 +1133,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			freeRegister(addrRegister);
 
 		} else if (a.left instanceof ArrayAccessExpr) {
-			// TODO: elemsize isn't a thing we can use here, it's just 4..?
+
 			// address = sp - array offset - (idx)*elemsize
 
 			ArrayAccessExpr aae = (ArrayAccessExpr) (a.left);
@@ -1078,13 +1155,13 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			freeRegister(addrRegister);
 		} else {
 			// a.left is a pointer
-			
-			//get address to write to
-			ValueAtExpr va = (ValueAtExpr)(a.left);
+
+			// get address to write to
+			ValueAtExpr va = (ValueAtExpr) (a.left);
 			Register address = va.expr.accept(this);
 			writeLine("sw " + assignTo + ", " + 0 + "(" + address + ")");
 			freeRegister(address);
-			
+
 		}
 		freeRegister(assignTo);
 

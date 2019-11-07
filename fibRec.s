@@ -1,4 +1,6 @@
 .data
+x: .space 4
+n: .space 4
 .text
 function_main:
 #prologue start
@@ -6,7 +8,6 @@ addi $sp $sp -4
 sw $fp 0($sp)
 move $fp $sp
 #prologue end
-addi $sp, $sp, -4
 #read_i
 addi $sp $sp -4
 sw $v0 0($sp)
@@ -17,8 +18,8 @@ lw $v0 0($sp)
 addi $sp $sp 4
 #read_i ends
 move $t8, $t9
-move $t9, $fp
-sw $t8, 0($t9)
+la $t9 n
+sw $t8 0($t9)
 #print_i
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -39,8 +40,8 @@ addi $sp $sp -4
 sw $v1 0($sp)
 addi $sp $sp -4
 sw $ra 0($sp)
-move $t8, $fp
-lw $t8, 0($t8)
+la $t8, n
+lw $t8, ($t8)
 move $a0, $t8
 #precall ends
 jal function_fib
@@ -71,7 +72,7 @@ addi $sp $sp 4
 #print_i over
 #returning from main
 li $t8, 0
-move $sp $fp
+addi $sp $sp 0
 li $v0, 10
 syscall
 function_fib:
@@ -102,7 +103,7 @@ lw $fp 0($sp)
 addi $sp $sp 4
 #epilogue end
 jr $ra
-move $sp $fp
+addi $sp $sp 0
 j if_end_1
 if_end_1:
 #precall begins
@@ -204,4 +205,4 @@ lw $fp 0($sp)
 addi $sp $sp 4
 #epilogue end
 jr $ra
-move $sp $fp
+addi $sp $sp 4

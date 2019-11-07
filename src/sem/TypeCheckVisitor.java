@@ -21,9 +21,14 @@ public class TypeCheckVisitor extends BaseSemanticVisitor<Type> {
 
 	@Override
 	public Type visitStructTypeDecl(StructTypeDecl st) {
+		scopeStack.add(new Scope());
 		for (VarDecl v : st.variables) {
 			v.accept(this);
 		}
+		scopeStack.pop();
+		
+		
+		
 		structs.add(st);
 		return st.structDecl.accept(this);
 

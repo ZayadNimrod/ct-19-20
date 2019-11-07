@@ -29,40 +29,40 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 			vd.accept(this);
 		}
 		// declare built-in functions
-		//void print_s(char* s); 
-				//void print_i(int i); 
-				//void print_c(char c);
-				//char read_c();
-				//int read_i(); 
-				//void* mcmalloc(int size);
-				
-				List<VarDecl> argsTemp = new LinkedList<VarDecl>();
-				argsTemp.add(new VarDecl(new PointerType(BaseType.CHAR), "s"));
-				putSymbol(new FunSymbol(new FunDecl(BaseType.VOID, "print_s", new LinkedList<VarDecl>(argsTemp),
-						new Block(new LinkedList<VarDecl>(), new LinkedList<Stmt>() ))));
+		// void print_s(char* s);
+		// void print_i(int i);
+		// void print_c(char c);
+		// char read_c();
+		// int read_i();
+		// void* mcmalloc(int size);
 
-				argsTemp = new LinkedList<VarDecl>();
-				argsTemp.add(new VarDecl(BaseType.INT, "i"));
-				putSymbol(new FunSymbol(new FunDecl(BaseType.VOID, "print_i", new LinkedList<VarDecl>(argsTemp),
-						new Block(new LinkedList<VarDecl>(), new LinkedList<Stmt>()))));
+		List<VarDecl> argsTemp = new LinkedList<VarDecl>();
+		argsTemp.add(new VarDecl(new PointerType(BaseType.CHAR), "s"));
+		putSymbol(new FunSymbol(new FunDecl(BaseType.VOID, "print_s", new LinkedList<VarDecl>(argsTemp),
+				new Block(new LinkedList<VarDecl>(), new LinkedList<Stmt>()))));
 
-				argsTemp = new LinkedList<VarDecl>();
-				argsTemp.add(new VarDecl(BaseType.CHAR, "c"));
-				putSymbol(new FunSymbol(new FunDecl(BaseType.VOID, "print_c", new LinkedList<VarDecl>(argsTemp),
-						new Block(new LinkedList<VarDecl>(), new LinkedList<Stmt>()))));
+		argsTemp = new LinkedList<VarDecl>();
+		argsTemp.add(new VarDecl(BaseType.INT, "i"));
+		putSymbol(new FunSymbol(new FunDecl(BaseType.VOID, "print_i", new LinkedList<VarDecl>(argsTemp),
+				new Block(new LinkedList<VarDecl>(), new LinkedList<Stmt>()))));
 
-				putSymbol(new FunSymbol(new FunDecl(BaseType.CHAR, "read_c", new LinkedList<VarDecl>(),
-						new Block(new LinkedList<VarDecl>(), new LinkedList<Stmt>()))));
+		argsTemp = new LinkedList<VarDecl>();
+		argsTemp.add(new VarDecl(BaseType.CHAR, "c"));
+		putSymbol(new FunSymbol(new FunDecl(BaseType.VOID, "print_c", new LinkedList<VarDecl>(argsTemp),
+				new Block(new LinkedList<VarDecl>(), new LinkedList<Stmt>()))));
 
-				List<Stmt> junkCode = new LinkedList<Stmt>();
-				junkCode.add(new Return(new IntLiteral(1)));				
-				putSymbol(new FunSymbol(new FunDecl(BaseType.INT, "read_i", new LinkedList<VarDecl>(),
-						new Block(new LinkedList<VarDecl>(), junkCode))));
+		putSymbol(new FunSymbol(new FunDecl(BaseType.CHAR, "read_c", new LinkedList<VarDecl>(),
+				new Block(new LinkedList<VarDecl>(), new LinkedList<Stmt>()))));
 
-				argsTemp = new LinkedList<VarDecl>();
-				argsTemp.add(new VarDecl(BaseType.INT, "size"));
-				putSymbol(new FunSymbol(new FunDecl(new PointerType(BaseType.VOID), "mcmalloc",
-						new LinkedList<VarDecl>(argsTemp), new Block(new LinkedList<VarDecl>(), new LinkedList<Stmt>()))));
+		List<Stmt> junkCode = new LinkedList<Stmt>();
+		junkCode.add(new Return(new IntLiteral(1)));
+		putSymbol(new FunSymbol(new FunDecl(BaseType.INT, "read_i", new LinkedList<VarDecl>(),
+				new Block(new LinkedList<VarDecl>(), junkCode))));
+
+		argsTemp = new LinkedList<VarDecl>();
+		argsTemp.add(new VarDecl(BaseType.INT, "size"));
+		putSymbol(new FunSymbol(new FunDecl(new PointerType(BaseType.VOID), "mcmalloc",
+				new LinkedList<VarDecl>(argsTemp), new Block(new LinkedList<VarDecl>(), new LinkedList<Stmt>()))));
 
 		for (FunDecl fd : p.funDecls) {
 			fd.accept(this);
@@ -94,11 +94,13 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 
 	@Override
 	public Void visitStructTypeDecl(StructTypeDecl st) {
+		scopeStack.add(new Scope());
 		st.structDecl.accept(this);
 		for (VarDecl vd : st.variables) {
 			vd.accept(this);
 		}
 
+		scopeStack.pop();
 		// I wish I had LINQ to search over structdecl.name...
 		// if(structs.contains(x=>x.structDecl.structType == st.structDecl.structType ))
 		// {
@@ -106,7 +108,6 @@ public class NameAnalysisVisitor extends BaseSemanticVisitor<Void> {
 			error("Defining struct " + st.structDecl.structType + " more than once");
 		}
 		structs.add(st);
-
 		return null;
 	}
 
