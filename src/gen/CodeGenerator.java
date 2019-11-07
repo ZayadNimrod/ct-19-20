@@ -347,7 +347,9 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	@Override
 	public Register visitVarExpr(VarExpr v) {
-
+		//TODO check with sizes?
+		
+		
 		// check this is not a global
 		Register value = null;
 		if (v.vd.offset == -1) {
@@ -1076,9 +1078,13 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			freeRegister(addrRegister);
 		} else {
 			// a.left is a pointer
-			System.out.println("NOT IMPLEMENTED ASSIGN TO POINTER");
-			// TODO
-
+			
+			//get address to write to
+			ValueAtExpr va = (ValueAtExpr)(a.left);
+			Register address = va.expr.accept(this);
+			writeLine("sw " + assignTo + ", " + 0 + "(" + address + ")");
+			freeRegister(address);
+			
 		}
 		freeRegister(assignTo);
 
