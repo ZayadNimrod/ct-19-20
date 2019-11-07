@@ -98,13 +98,48 @@ public class StringLiteralVisitor implements ASTVisitor<Void> {
 		// Literally the only point of this visitor
 		String sid = "string_" + uid();
 		sl.id = sid;
-		// TODO: hold on.... this will have newlines as newlines, not escape codes...
-		writer.write(sid + ": .asciiz \"" + sl.lit + "\"\n");
+		writer.write(sid + ": .asciiz \"");
+		for (char i : sl.lit.toCharArray()) {
+			switch (i) {
+			case ('\n'):
+				writer.write("\\n");
+				break;
+			case ('\t'):
+				writer.write("\\t");
+				break;
+			case ('\\'):
+				writer.write("\\");
+				break;
+			case ('\"'):
+				writer.write("\\\"");
+				break;
+			case ('\b'):
+				writer.write("\\b");
+				break;
+			case ('\r'):
+				writer.write("\\r");
+				break;
+			case ('\f'):
+				writer.write("\\f");
+				break;
+			case ('\0'):
+				writer.write("\\0");
+
+				break;
+			default:
+				writer.write(i);
+				break;
+			}
+		}
+
+		writer.write("\"\n");
 		return null;
 	}
 
 	@Override
 	public Void visitChrLiteral(ChrLiteral cl) {
+		// TODO what if this is an escape character
+
 		return null;
 	}
 
