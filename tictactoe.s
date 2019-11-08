@@ -444,7 +444,7 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#read_i
+#read_c
 addi $sp $sp -4
 sw $v0 0($sp)
 addi $sp $sp -4
@@ -464,7 +464,7 @@ lw $a1 0($sp)
 addi $sp $sp 4
 lw $v0 0($sp)
 addi $sp $sp 4
-#read_i ends
+#read_c ends
 move $t9, $t8
 move $t8, $fp
 sw $t9, -16($t8)
@@ -569,6 +569,7 @@ addi $sp $sp 0
 j while_start_1
 while_end_1:
 addi $sp $sp 16
+#returning from main
 li $v0, 10
 syscall
 function_reset:
@@ -623,6 +624,13 @@ move $t8, $t9
 la $t9 a33
 sw $t8 0($t9)
 addi $sp $sp 0
+#returning from function
+#epilogue start
+move $sp $fp
+lw $fp 0($sp)
+addi $sp $sp 4
+#epilogue end
+jr $ra
 function_full:
 #prologue start
 addi $sp $sp -4
@@ -1193,7 +1201,7 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#print_i
+#print_c
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
@@ -1203,14 +1211,14 @@ lw $t9, ($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
-li $v0 1
+li $v0 4
 syscall
 addi $sp $sp 4
 lw $v0 0($sp)
 addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
-#print_i over
+#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1225,7 +1233,7 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#print_i
+#print_c
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
@@ -1235,14 +1243,14 @@ lw $t9, ($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
-li $v0 1
+li $v0 4
 syscall
 addi $sp $sp 4
 lw $v0 0($sp)
 addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
-#print_i over
+#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1257,7 +1265,7 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#print_i
+#print_c
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
@@ -1267,14 +1275,14 @@ lw $t9, ($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
-li $v0 1
+li $v0 4
 syscall
 addi $sp $sp 4
 lw $v0 0($sp)
 addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
-#print_i over
+#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1317,7 +1325,7 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#print_i
+#print_c
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
@@ -1327,14 +1335,14 @@ lw $t9, ($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
-li $v0 1
+li $v0 4
 syscall
 addi $sp $sp 4
 lw $v0 0($sp)
 addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
-#print_i over
+#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1349,7 +1357,7 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#print_i
+#print_c
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
@@ -1359,14 +1367,14 @@ lw $t9, ($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
-li $v0 1
+li $v0 4
 syscall
 addi $sp $sp 4
 lw $v0 0($sp)
 addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
-#print_i over
+#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1381,7 +1389,7 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#print_i
+#print_c
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
@@ -1391,14 +1399,14 @@ lw $t9, ($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
-li $v0 1
+li $v0 4
 syscall
 addi $sp $sp 4
 lw $v0 0($sp)
 addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
-#print_i over
+#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1441,7 +1449,7 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#print_i
+#print_c
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
@@ -1451,14 +1459,14 @@ lw $t9, ($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
-li $v0 1
+li $v0 4
 syscall
 addi $sp $sp 4
 lw $v0 0($sp)
 addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
-#print_i over
+#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1473,7 +1481,7 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#print_i
+#print_c
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
@@ -1483,14 +1491,14 @@ lw $t9, ($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
-li $v0 1
+li $v0 4
 syscall
 addi $sp $sp 4
 lw $v0 0($sp)
 addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
-#print_i over
+#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1505,7 +1513,7 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#print_i
+#print_c
 addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
@@ -1515,14 +1523,14 @@ lw $t9, ($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
-li $v0 1
+li $v0 4
 syscall
 addi $sp $sp 4
 lw $v0 0($sp)
 addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
-#print_i over
+#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1566,6 +1574,13 @@ lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
 addi $sp $sp 0
+#returning from function
+#epilogue start
+move $sp $fp
+lw $fp 0($sp)
+addi $sp $sp 4
+#epilogue end
+jr $ra
 function_printWinner:
 #prologue start
 addi $sp $sp -4
@@ -1618,6 +1633,13 @@ lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
 addi $sp $sp 0
+#returning from function
+#epilogue start
+move $sp $fp
+lw $fp 0($sp)
+addi $sp $sp 4
+#epilogue end
+jr $ra
 function_switchPlayer:
 #prologue start
 addi $sp $sp -4
@@ -1752,7 +1774,7 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#read_i
+#read_c
 addi $sp $sp -4
 sw $v0 0($sp)
 addi $sp $sp -4
@@ -1772,7 +1794,7 @@ lw $a1 0($sp)
 addi $sp $sp 4
 lw $v0 0($sp)
 addi $sp $sp 4
-#read_i ends
+#read_c ends
 move $t9, $t8
 move $t8, $fp
 sw $t9, -8($t8)
@@ -1930,6 +1952,13 @@ addi $sp $sp 0
 j while_start_40
 while_end_40:
 addi $sp $sp 20
+#returning from function
+#epilogue start
+move $sp $fp
+lw $fp 0($sp)
+addi $sp $sp 4
+#epilogue end
+jr $ra
 function_won:
 #prologue start
 addi $sp $sp -4

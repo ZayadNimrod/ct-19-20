@@ -255,6 +255,22 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		prologue(p);
 
 		p.block.accept(this);
+		
+		if(p.type==BaseType.VOID) {
+			//it is possible to have a void function not have an explicit RETURN stmt
+			//so we will write it here just in case.
+			if (currentFunDecl.name.equals("main")) {
+				// return from main
+				writeLine("#returning from main");
+				
+			} else {
+				// any "normal" function
+				writeLine("#returning from function");
+
+				epilogue();
+				return Register.v0;
+			}
+		}
 
 		return Register.v0;
 	}
@@ -573,7 +589,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	}
 
 	private Register visitRead_c(FunCallExpr fc) {
-		writeLine("#read_i");
+		writeLine("#read_c");
 		writeLine("addi $sp $sp -4");
 		writeLine("sw $v0 0($sp)");
 		writeLine("addi $sp $sp -4");
@@ -599,13 +615,13 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("addi $sp $sp 4");
 		writeLine("lw $v0 0($sp)");
 		writeLine("addi $sp $sp 4");
-		writeLine("#read_i ends");
+		writeLine("#read_c ends");
 		return ret;
 	}
 
 	private Register visitPrint_c(FunCallExpr fc) {
 
-		writeLine("#print_i");
+		writeLine("#print_c");
 		// save registers that are to be used
 
 		writeLine("addi $sp $sp -4");
@@ -618,7 +634,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("sw " + printThis + " 0($sp)");
 
 		writeLine("move $a0 $sp");
-		writeLine("li $v0 1");
+		writeLine("li $v0 4");
 		writeLine("syscall");
 		freeRegister(printThis);
 
@@ -630,7 +646,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("addi $sp $sp 4");
 		writeLine("lw $a0 0($sp)");
 		writeLine("addi $sp $sp 4");
-		writeLine("#print_i over");
+		writeLine("#print_c over");
 		return null;
 	}
 
