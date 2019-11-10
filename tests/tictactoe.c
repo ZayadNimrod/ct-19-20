@@ -53,7 +53,10 @@ int full() {
 int set(char row, int col, char mark) {
   int r;
   r = 1;
+  print_c(row);
+  
   if (row == 'a') {
+  	print_s((char*)"aaaa");
      if (col == 1) {
         if (a11 == empty)
 	    a11 = mark;

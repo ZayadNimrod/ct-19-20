@@ -255,14 +255,14 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		prologue(p);
 
 		p.block.accept(this);
-		
-		if(p.type==BaseType.VOID) {
-			//it is possible to have a void function not have an explicit RETURN stmt
-			//so we will write it here just in case.
+
+		if (p.type == BaseType.VOID) {
+			// it is possible to have a void function not have an explicit RETURN stmt
+			// so we will write it here just in case.
 			if (currentFunDecl.name.equals("main")) {
 				// return from main
 				writeLine("#returning from main");
-				
+
 			} else {
 				// any "normal" function
 				writeLine("#returning from function");
@@ -371,30 +371,23 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 			// this is a global
 			value = getRegister();
-			writeLine("la " + value + ", " + v.name);
-			writeLine("lw " + value + ", (" + value + ")");
+			writeLine("la " + value + ", " + v.name);			
+			writeLine("lw " + value + ", 0(" + value + ")");
 		} else {
-			value = loadLocalVar(v.vd);
+			// get address of variable, which is our current frame pointer+offset
+			Register addrRegister = getRegister();
+
+			// System.out.println("Variable " + vd.varName + ": offset " + vd.offset);
+
+			writeLine("move " + addrRegister + ", $fp");
+			// load variable from address
+			writeLine("lw " + addrRegister + ", " + (-v.vd.offset) + "(" + addrRegister + ")");
+			value = addrRegister;
 		}
 		return value;
 	}
 
-	public Register loadLocalVar(VarDecl vd) {
-		// System.out.println("loading local var " + vd.varName + ", offset = " +
-		// vd.offset);
-		// get address of variable, which is our current frame pointer+offset
-		Register addrRegister = getRegister();
-
-		// System.out.println("Variable " + vd.varName + ": offset " + vd.offset);
-
-		writeLine("move " + addrRegister + ", $fp");
-		// writeLine("sll "+addrRegister+"")
-		// do we add or subtract, since the stack counts *down*?
-		// writeLine("addi "+addrRegister+", "+addrRegister+", "+vd.offset);
-		// load variable from address
-		writeLine("lw " + addrRegister + ", " + (-vd.offset) + "(" + addrRegister + ")");
-		return addrRegister;
-	}
+	
 
 	@Override
 	public Register visitFunCallExpr(FunCallExpr fc) {
@@ -592,27 +585,14 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("#read_c");
 		writeLine("addi $sp $sp -4");
 		writeLine("sw $v0 0($sp)");
-		writeLine("addi $sp $sp -4");
-		writeLine("sw $a1 0($sp)");
-		writeLine("addi $sp $sp -4");
-		writeLine("sw $a0 0($sp)");
 
-		writeLine("addi $sp $sp -4");
-		writeLine("move $a0 $sp");
-		writeLine("li $v0, 8");
-		writeLine("li $a1, 1");
+		writeLine("li $v0, 12");
 		// get buffer to write to
 
 		writeLine("syscall");
 		Register ret = getRegister();
-
-		writeLine("lw " + ret + ", 0($sp)");
-
-		writeLine("addi $sp $sp 4");
-		writeLine("lw $a0 0($sp)");
-		writeLine("addi $sp $sp 4");
-		writeLine("lw $a1 0($sp)");
-		writeLine("addi $sp $sp 4");
+		writeLine("move " + ret + ", " + Register.v0);
+		
 		writeLine("lw $v0 0($sp)");
 		writeLine("addi $sp $sp 4");
 		writeLine("#read_c ends");
@@ -640,8 +620,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		// restore them
 		writeLine("addi $sp $sp 4");
-		
-		
+
 		writeLine("lw $v0 0($sp)");
 		writeLine("addi $sp $sp 4");
 		writeLine("lw $a0 0($sp)");
@@ -653,8 +632,8 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	@Override
 	public Register visitBinOp(BinOp bo) {
 		// TODO: try to do depth-first to use less registers
-		// TODO: they want us to do comparision with control flow?
-		// TODO: is this to do with short-circuiting?
+		// TODO: char comparisions..?
+
 		switch (bo.op) {
 		case ADD:
 			return visitAdd(bo);

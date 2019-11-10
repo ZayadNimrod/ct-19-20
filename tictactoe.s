@@ -9,33 +9,34 @@ a31: .space 4
 a32: .space 4
 a33: .space 4
 empty: .space 4
-string_1: .asciiz "\n"
-string_2: .asciiz "     1   2   3\n"
-string_3: .asciiz "   +---+---+---+\n"
-string_4: .asciiz "a  | "
-string_5: .asciiz " | "
+string_1: .asciiz "aaaa"
+string_2: .asciiz "\n"
+string_3: .asciiz "     1   2   3\n"
+string_4: .asciiz "   +---+---+---+\n"
+string_5: .asciiz "a  | "
 string_6: .asciiz " | "
-string_7: .asciiz " |\n"
-string_8: .asciiz "   +---+---+---+\n"
-string_9: .asciiz "b  | "
-string_10: .asciiz " | "
+string_7: .asciiz " | "
+string_8: .asciiz " |\n"
+string_9: .asciiz "   +---+---+---+\n"
+string_10: .asciiz "b  | "
 string_11: .asciiz " | "
-string_12: .asciiz " |\n"
-string_13: .asciiz "   +---+---+---+\n"
-string_14: .asciiz "c  | "
-string_15: .asciiz " | "
+string_12: .asciiz " | "
+string_13: .asciiz " |\n"
+string_14: .asciiz "   +---+---+---+\n"
+string_15: .asciiz "c  | "
 string_16: .asciiz " | "
-string_17: .asciiz " |\n"
-string_18: .asciiz "   +---+---+---+\n"
-string_19: .asciiz "\n"
-string_20: .asciiz "Player "
-string_21: .asciiz " has won!\n"
-string_22: .asciiz "Player "
-string_23: .asciiz " select move (e.g. a2)>"
-string_24: .asciiz "That is not a valid move!\n"
-string_25: .asciiz "That move is not possible!\n"
-string_26: .asciiz "It's a draw!\n"
-string_27: .asciiz "Play again? (y/n)> "
+string_17: .asciiz " | "
+string_18: .asciiz " |\n"
+string_19: .asciiz "   +---+---+---+\n"
+string_20: .asciiz "\n"
+string_21: .asciiz "Player "
+string_22: .asciiz " has won!\n"
+string_23: .asciiz "Player "
+string_24: .asciiz " select move (e.g. a2)>"
+string_25: .asciiz "That is not a valid move!\n"
+string_26: .asciiz "That move is not possible!\n"
+string_27: .asciiz "It's a draw!\n"
+string_28: .asciiz "Play again? (y/n)> "
 .text
 function_main:
 #prologue start
@@ -366,7 +367,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t8 string_26
+la $t8 string_27
 move $a0, $t8
 li $v0, 4
 syscall
@@ -435,7 +436,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t8 string_27
+la $t8 string_28
 move $a0, $t8
 li $v0, 4
 syscall
@@ -447,21 +448,9 @@ addi $sp $sp 4
 #read_c
 addi $sp $sp -4
 sw $v0 0($sp)
-addi $sp $sp -4
-sw $a1 0($sp)
-addi $sp $sp -4
-sw $a0 0($sp)
-addi $sp $sp -4
-move $a0 $sp
-li $v0, 8
-li $a1, 1
+li $v0, 12
 syscall
-lw $t8, 0($sp)
-addi $sp $sp 4
-lw $a0 0($sp)
-addi $sp $sp 4
-lw $a1 0($sp)
-addi $sp $sp 4
+move $t8, $v0
 lw $v0 0($sp)
 addi $sp $sp 4
 #read_c ends
@@ -579,47 +568,47 @@ sw $fp 0($sp)
 move $fp $sp
 #prologue end
 la $t9, empty
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $t9
 la $t9 a11
 sw $t8 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $t8
 la $t8 a12
 sw $t9 0($t8)
 la $t9, empty
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $t9
 la $t9 a13
 sw $t8 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $t8
 la $t8 a21
 sw $t9 0($t8)
 la $t9, empty
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $t9
 la $t9 a22
 sw $t8 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $t8
 la $t8 a23
 sw $t9 0($t8)
 la $t9, empty
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $t9
 la $t9 a31
 sw $t8 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $t8
 la $t8 a32
 sw $t9 0($t8)
 la $t9, empty
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $t9
 la $t9 a33
 sw $t8 0($t9)
@@ -643,9 +632,9 @@ move $t9, $t8
 move $t8, $fp
 sw $t9, -4($t8)
 la $t9, a11
-lw $t9, ($t9)
+lw $t9, 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 seq $t9, $t9, $t8
 addi $t9, $t9, -1
 negu $t9, $t9
@@ -659,9 +648,9 @@ sw $t8, -4($t9)
 j if_end_7
 if_end_7:
 la $t8, a21
-lw $t8, ($t8)
+lw $t8, 0($t8)
 la $t9, empty
-lw $t9, ($t9)
+lw $t9, 0($t9)
 seq $t8, $t8, $t9
 addi $t8, $t8, -1
 negu $t8, $t8
@@ -675,9 +664,9 @@ sw $t9, -4($t8)
 j if_end_8
 if_end_8:
 la $t9, a31
-lw $t9, ($t9)
+lw $t9, 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 seq $t9, $t9, $t8
 addi $t9, $t9, -1
 negu $t9, $t9
@@ -691,9 +680,9 @@ sw $t8, -4($t9)
 j if_end_9
 if_end_9:
 la $t8, a12
-lw $t8, ($t8)
+lw $t8, 0($t8)
 la $t9, empty
-lw $t9, ($t9)
+lw $t9, 0($t9)
 seq $t8, $t8, $t9
 addi $t8, $t8, -1
 negu $t8, $t8
@@ -707,9 +696,9 @@ sw $t9, -4($t8)
 j if_end_10
 if_end_10:
 la $t9, a22
-lw $t9, ($t9)
+lw $t9, 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 seq $t9, $t9, $t8
 addi $t9, $t9, -1
 negu $t9, $t9
@@ -723,9 +712,9 @@ sw $t8, -4($t9)
 j if_end_11
 if_end_11:
 la $t8, a32
-lw $t8, ($t8)
+lw $t8, 0($t8)
 la $t9, empty
-lw $t9, ($t9)
+lw $t9, 0($t9)
 seq $t8, $t8, $t9
 addi $t8, $t8, -1
 negu $t8, $t8
@@ -739,9 +728,9 @@ sw $t9, -4($t8)
 j if_end_12
 if_end_12:
 la $t9, a13
-lw $t9, ($t9)
+lw $t9, 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 seq $t9, $t9, $t8
 addi $t9, $t9, -1
 negu $t9, $t9
@@ -755,9 +744,9 @@ sw $t8, -4($t9)
 j if_end_13
 if_end_13:
 la $t8, a23
-lw $t8, ($t8)
+lw $t8, 0($t8)
 la $t9, empty
-lw $t9, ($t9)
+lw $t9, 0($t9)
 seq $t8, $t8, $t9
 addi $t8, $t8, -1
 negu $t8, $t8
@@ -771,9 +760,9 @@ sw $t9, -4($t8)
 j if_end_14
 if_end_14:
 la $t9, a33
-lw $t9, ($t9)
+lw $t9, 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 seq $t9, $t9, $t8
 addi $t9, $t9, -1
 negu $t9, $t9
@@ -830,20 +819,52 @@ li $t8, 1
 move $t9, $t8
 move $t8, $fp
 sw $t9, -16($t8)
+#print_c
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
+move $t9, $fp
+lw $t9, -4($t9)
+addi $sp $sp -4
+sw $t9 0($sp)
+move $a0 $sp
+li $v0 4
+syscall
+addi $sp $sp 4
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_c over
 move $t9, $fp
 lw $t9, -4($t9)
 li $t8, 97
 seq $t9, $t9, $t8
 beqz $t9, if_else_17
+#print_s begins
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
+la $t9 string_1
+move $a0, $t9
+li $v0, 4
+syscall
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_s ends
 move $t9, $fp
 lw $t9, -8($t9)
 li $t8, 1
 seq $t9, $t9, $t8
 beqz $t9, if_else_18
 la $t9, a11
-lw $t9, ($t9)
+lw $t9, 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 seq $t9, $t9, $t8
 beqz $t9, if_else_19
 move $t9, $fp
@@ -867,9 +888,9 @@ li $t8, 2
 seq $t9, $t9, $t8
 beqz $t9, if_else_20
 la $t9, a12
-lw $t9, ($t9)
+lw $t9, 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 seq $t9, $t9, $t8
 beqz $t9, if_else_21
 move $t9, $fp
@@ -893,9 +914,9 @@ li $t8, 3
 seq $t9, $t9, $t8
 beqz $t9, if_else_22
 la $t9, a13
-lw $t9, ($t9)
+lw $t9, 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 seq $t9, $t9, $t8
 beqz $t9, if_else_23
 move $t9, $fp
@@ -937,9 +958,9 @@ li $t9, 1
 seq $t8, $t8, $t9
 beqz $t8, if_else_25
 la $t8, a21
-lw $t8, ($t8)
+lw $t8, 0($t8)
 la $t9, empty
-lw $t9, ($t9)
+lw $t9, 0($t9)
 seq $t8, $t8, $t9
 beqz $t8, if_else_26
 move $t8, $fp
@@ -963,9 +984,9 @@ li $t9, 2
 seq $t8, $t8, $t9
 beqz $t8, if_else_27
 la $t8, a22
-lw $t8, ($t8)
+lw $t8, 0($t8)
 la $t9, empty
-lw $t9, ($t9)
+lw $t9, 0($t9)
 seq $t8, $t8, $t9
 beqz $t8, if_else_28
 move $t8, $fp
@@ -989,9 +1010,9 @@ li $t9, 3
 seq $t8, $t8, $t9
 beqz $t8, if_else_29
 la $t8, a23
-lw $t8, ($t8)
+lw $t8, 0($t8)
 la $t9, empty
-lw $t9, ($t9)
+lw $t9, 0($t9)
 seq $t8, $t8, $t9
 beqz $t8, if_else_30
 move $t8, $fp
@@ -1033,9 +1054,9 @@ li $t8, 1
 seq $t9, $t9, $t8
 beqz $t9, if_else_32
 la $t9, a31
-lw $t9, ($t9)
+lw $t9, 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 seq $t9, $t9, $t8
 beqz $t9, if_else_33
 move $t9, $fp
@@ -1059,9 +1080,9 @@ li $t8, 2
 seq $t9, $t9, $t8
 beqz $t9, if_else_34
 la $t9, a32
-lw $t9, ($t9)
+lw $t9, 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 seq $t9, $t9, $t8
 beqz $t9, if_else_35
 move $t9, $fp
@@ -1085,9 +1106,9 @@ li $t8, 3
 seq $t9, $t9, $t8
 beqz $t9, if_else_36
 la $t9, a33
-lw $t9, ($t9)
+lw $t9, 0($t9)
 la $t8, empty
-lw $t8, ($t8)
+lw $t8, 0($t8)
 seq $t9, $t9, $t8
 beqz $t9, if_else_37
 move $t9, $fp
@@ -1150,20 +1171,6 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9 string_1
-move $a0, $t9
-li $v0, 4
-syscall
-lw $v0 0($sp)
-addi $sp $sp 4
-lw $a0 0($sp)
-addi $sp $sp 4
-#print_s ends
-#print_s begins
-addi $sp $sp -4
-sw $a0 0($sp)
-addi $sp $sp -4
-sw $v0 0($sp)
 la $t9 string_2
 move $a0, $t9
 li $v0, 4
@@ -1201,24 +1208,6 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#print_c
-addi $sp $sp -4
-sw $a0 0($sp)
-addi $sp $sp -4
-sw $v0 0($sp)
-la $t9, a11
-lw $t9, ($t9)
-addi $sp $sp -4
-sw $t9 0($sp)
-move $a0 $sp
-li $v0 4
-syscall
-addi $sp $sp 4
-lw $v0 0($sp)
-addi $sp $sp 4
-lw $a0 0($sp)
-addi $sp $sp 4
-#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1238,8 +1227,8 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9, a12
-lw $t9, ($t9)
+la $t9, a11
+lw $t9, 0($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
@@ -1270,8 +1259,8 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9, a13
-lw $t9, ($t9)
+la $t9, a12
+lw $t9, 0($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
@@ -1297,6 +1286,24 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
+#print_c
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
+la $t9, a13
+lw $t9, 0($t9)
+addi $sp $sp -4
+sw $t9 0($sp)
+move $a0 $sp
+li $v0 4
+syscall
+addi $sp $sp 4
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1325,24 +1332,6 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#print_c
-addi $sp $sp -4
-sw $a0 0($sp)
-addi $sp $sp -4
-sw $v0 0($sp)
-la $t9, a21
-lw $t9, ($t9)
-addi $sp $sp -4
-sw $t9 0($sp)
-move $a0 $sp
-li $v0 4
-syscall
-addi $sp $sp 4
-lw $v0 0($sp)
-addi $sp $sp 4
-lw $a0 0($sp)
-addi $sp $sp 4
-#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1362,8 +1351,8 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9, a22
-lw $t9, ($t9)
+la $t9, a21
+lw $t9, 0($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
@@ -1394,8 +1383,8 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9, a23
-lw $t9, ($t9)
+la $t9, a22
+lw $t9, 0($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
@@ -1421,6 +1410,24 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
+#print_c
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
+la $t9, a23
+lw $t9, 0($t9)
+addi $sp $sp -4
+sw $t9 0($sp)
+move $a0 $sp
+li $v0 4
+syscall
+addi $sp $sp 4
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1449,24 +1456,6 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#print_c
-addi $sp $sp -4
-sw $a0 0($sp)
-addi $sp $sp -4
-sw $v0 0($sp)
-la $t9, a31
-lw $t9, ($t9)
-addi $sp $sp -4
-sw $t9 0($sp)
-move $a0 $sp
-li $v0 4
-syscall
-addi $sp $sp 4
-lw $v0 0($sp)
-addi $sp $sp 4
-lw $a0 0($sp)
-addi $sp $sp 4
-#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1486,8 +1475,8 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9, a32
-lw $t9, ($t9)
+la $t9, a31
+lw $t9, 0($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
@@ -1518,8 +1507,8 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9, a33
-lw $t9, ($t9)
+la $t9, a32
+lw $t9, 0($t9)
 addi $sp $sp -4
 sw $t9 0($sp)
 move $a0 $sp
@@ -1545,6 +1534,24 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
+#print_c
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
+la $t9, a33
+lw $t9, 0($t9)
+addi $sp $sp -4
+sw $t9 0($sp)
+move $a0 $sp
+li $v0 4
+syscall
+addi $sp $sp 4
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_c over
 #print_s begins
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1565,6 +1572,20 @@ sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
 la $t9 string_19
+move $a0, $t9
+li $v0, 4
+syscall
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_s ends
+#print_s begins
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
+la $t9 string_20
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1594,7 +1615,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9 string_20
+la $t9 string_21
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1623,7 +1644,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9 string_21
+la $t9 string_22
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1736,7 +1757,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t8 string_22
+la $t8 string_23
 move $a0, $t8
 li $v0, 4
 syscall
@@ -1765,7 +1786,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t8 string_23
+la $t8 string_24
 move $a0, $t8
 li $v0, 4
 syscall
@@ -1777,21 +1798,9 @@ addi $sp $sp 4
 #read_c
 addi $sp $sp -4
 sw $v0 0($sp)
-addi $sp $sp -4
-sw $a1 0($sp)
-addi $sp $sp -4
-sw $a0 0($sp)
-addi $sp $sp -4
-move $a0 $sp
-li $v0, 8
-li $a1, 1
+li $v0, 12
 syscall
-lw $t8, 0($sp)
-addi $sp $sp 4
-lw $a0 0($sp)
-addi $sp $sp 4
-lw $a1 0($sp)
-addi $sp $sp 4
+move $t8, $v0
 lw $v0 0($sp)
 addi $sp $sp 4
 #read_c ends
@@ -1906,7 +1915,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t8 string_24
+la $t8 string_25
 move $a0, $t8
 li $v0, 4
 syscall
@@ -1930,7 +1939,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t8 string_25
+la $t8 string_26
 move $a0, $t8
 li $v0, 4
 syscall
@@ -1973,19 +1982,19 @@ move $t8, $t9
 move $t9, $fp
 sw $t8, -8($t9)
 la $t8, a11
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $fp
 lw $t9, -4($t9)
 seq $t8, $t8, $t9
 beqz $t8, if_end_43
 la $t8, a21
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $fp
 lw $t9, -4($t9)
 seq $t8, $t8, $t9
 beqz $t8, if_else_44
 la $t8, a31
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $fp
 lw $t9, -4($t9)
 seq $t8, $t8, $t9
@@ -2001,13 +2010,13 @@ addi $sp $sp 0
 j if_end_44
 if_else_44:
 la $t9, a22
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $fp
 lw $t8, -4($t8)
 seq $t9, $t9, $t8
 beqz $t9, if_else_46
 la $t9, a33
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $fp
 lw $t8, -4($t8)
 seq $t9, $t9, $t8
@@ -2023,13 +2032,13 @@ addi $sp $sp 0
 j if_end_46
 if_else_46:
 la $t8, a12
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $fp
 lw $t9, -4($t9)
 seq $t8, $t8, $t9
 beqz $t8, if_end_48
 la $t8, a13
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $fp
 lw $t9, -4($t9)
 seq $t8, $t8, $t9
@@ -2052,19 +2061,19 @@ addi $sp $sp 0
 j if_end_43
 if_end_43:
 la $t9, a12
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $fp
 lw $t8, -4($t8)
 seq $t9, $t9, $t8
 beqz $t9, if_end_50
 la $t9, a22
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $fp
 lw $t8, -4($t8)
 seq $t9, $t9, $t8
 beqz $t9, if_end_51
 la $t9, a32
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $fp
 lw $t8, -4($t8)
 seq $t9, $t9, $t8
@@ -2083,19 +2092,19 @@ addi $sp $sp 0
 j if_end_50
 if_end_50:
 la $t8, a13
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $fp
 lw $t9, -4($t9)
 seq $t8, $t8, $t9
 beqz $t8, if_end_53
 la $t8, a23
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $fp
 lw $t9, -4($t9)
 seq $t8, $t8, $t9
 beqz $t8, if_else_54
 la $t8, a33
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $fp
 lw $t9, -4($t9)
 seq $t8, $t8, $t9
@@ -2111,13 +2120,13 @@ addi $sp $sp 0
 j if_end_54
 if_else_54:
 la $t9, a22
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $fp
 lw $t8, -4($t8)
 seq $t9, $t9, $t8
 beqz $t9, if_end_56
 la $t9, a31
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $fp
 lw $t8, -4($t8)
 seq $t9, $t9, $t8
@@ -2138,19 +2147,19 @@ addi $sp $sp 0
 j if_end_53
 if_end_53:
 la $t8, a21
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $fp
 lw $t9, -4($t9)
 seq $t8, $t8, $t9
 beqz $t8, if_end_58
 la $t8, a22
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $fp
 lw $t9, -4($t9)
 seq $t8, $t8, $t9
 beqz $t8, if_end_59
 la $t8, a23
-lw $t8, ($t8)
+lw $t8, 0($t8)
 move $t9, $fp
 lw $t9, -4($t9)
 seq $t8, $t8, $t9
@@ -2169,19 +2178,19 @@ addi $sp $sp 0
 j if_end_58
 if_end_58:
 la $t9, a31
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $fp
 lw $t8, -4($t8)
 seq $t9, $t9, $t8
 beqz $t9, if_end_61
 la $t9, a32
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $fp
 lw $t8, -4($t8)
 seq $t9, $t9, $t8
 beqz $t9, if_end_62
 la $t9, a33
-lw $t9, ($t9)
+lw $t9, 0($t9)
 move $t8, $fp
 lw $t8, -4($t8)
 seq $t9, $t9, $t8

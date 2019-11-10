@@ -20,7 +20,7 @@ void main() {
  
   first.i = 8;
   
-  second.s=first;
+  //second.s=first; //not legal
   second.i=12;
   
   first.j = 'b';
