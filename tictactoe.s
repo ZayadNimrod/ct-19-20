@@ -9,32 +9,32 @@ a31: .space 4
 a32: .space 4
 a33: .space 4
 empty: .space 4
-string_1: .asciiz "aaaa"
-string_2: .asciiz "\n"
-string_3: .asciiz "     1   2   3\n"
-string_4: .asciiz "   +---+---+---+\n"
-string_5: .asciiz "a  | "
+string_1: .asciiz "\n"
+string_2: .asciiz "     1   2   3\n"
+string_3: .asciiz "   +---+---+---+\n"
+string_4: .asciiz "a  | "
+string_5: .asciiz " | "
 string_6: .asciiz " | "
-string_7: .asciiz " | "
-string_8: .asciiz " |\n"
-string_9: .asciiz "   +---+---+---+\n"
-string_10: .asciiz "b  | "
+string_7: .asciiz " |\n"
+string_8: .asciiz "   +---+---+---+\n"
+string_9: .asciiz "b  | "
+string_10: .asciiz " | "
 string_11: .asciiz " | "
-string_12: .asciiz " | "
-string_13: .asciiz " |\n"
-string_14: .asciiz "   +---+---+---+\n"
-string_15: .asciiz "c  | "
+string_12: .asciiz " |\n"
+string_13: .asciiz "   +---+---+---+\n"
+string_14: .asciiz "c  | "
+string_15: .asciiz " | "
 string_16: .asciiz " | "
-string_17: .asciiz " | "
-string_18: .asciiz " |\n"
-string_19: .asciiz "   +---+---+---+\n"
-string_20: .asciiz "\n"
-string_21: .asciiz "Player "
-string_22: .asciiz " has won!\n"
-string_23: .asciiz "Player "
-string_24: .asciiz " select move (e.g. a2)>"
-string_25: .asciiz "That is not a valid move!\n"
-string_26: .asciiz "That move is not possible!\n"
+string_17: .asciiz " |\n"
+string_18: .asciiz "   +---+---+---+\n"
+string_19: .asciiz "\n"
+string_20: .asciiz "Player "
+string_21: .asciiz " has won!\n"
+string_22: .asciiz "Player "
+string_23: .asciiz " select move (e.g. a2)>"
+string_24: .asciiz "That is not a valid move!\n"
+string_25: .asciiz "That move is not possible!\n"
+string_26: .asciiz "did checks"
 string_27: .asciiz "It's a draw!\n"
 string_28: .asciiz "Play again? (y/n)> "
 .text
@@ -842,20 +842,6 @@ lw $t9, -4($t9)
 li $t8, 97
 seq $t9, $t9, $t8
 beqz $t9, if_else_17
-#print_s begins
-addi $sp $sp -4
-sw $a0 0($sp)
-addi $sp $sp -4
-sw $v0 0($sp)
-la $t9 string_1
-move $a0, $t9
-li $v0, 4
-syscall
-lw $v0 0($sp)
-addi $sp $sp 4
-lw $a0 0($sp)
-addi $sp $sp 4
-#print_s ends
 move $t9, $fp
 lw $t9, -8($t9)
 li $t8, 1
@@ -1171,6 +1157,20 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
+la $t9 string_1
+move $a0, $t9
+li $v0, 4
+syscall
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_s ends
+#print_s begins
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
 la $t9 string_2
 move $a0, $t9
 li $v0, 4
@@ -1208,20 +1208,6 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_s ends
-#print_s begins
-addi $sp $sp -4
-sw $a0 0($sp)
-addi $sp $sp -4
-sw $v0 0($sp)
-la $t9 string_5
-move $a0, $t9
-li $v0, 4
-syscall
-lw $v0 0($sp)
-addi $sp $sp 4
-lw $a0 0($sp)
-addi $sp $sp 4
-#print_s ends
 #print_c
 addi $sp $sp -4
 sw $a0 0($sp)
@@ -1245,7 +1231,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9 string_6
+la $t9 string_5
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1277,7 +1263,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9 string_7
+la $t9 string_6
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1309,6 +1295,20 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
+la $t9 string_7
+move $a0, $t9
+li $v0, 4
+syscall
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_s ends
+#print_s begins
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
 la $t9 string_8
 move $a0, $t9
 li $v0, 4
@@ -1324,20 +1324,6 @@ sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
 la $t9 string_9
-move $a0, $t9
-li $v0, 4
-syscall
-lw $v0 0($sp)
-addi $sp $sp 4
-lw $a0 0($sp)
-addi $sp $sp 4
-#print_s ends
-#print_s begins
-addi $sp $sp -4
-sw $a0 0($sp)
-addi $sp $sp -4
-sw $v0 0($sp)
-la $t9 string_10
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1369,7 +1355,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9 string_11
+la $t9 string_10
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1401,7 +1387,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9 string_12
+la $t9 string_11
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1433,6 +1419,20 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
+la $t9 string_12
+move $a0, $t9
+li $v0, 4
+syscall
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_s ends
+#print_s begins
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
 la $t9 string_13
 move $a0, $t9
 li $v0, 4
@@ -1448,20 +1448,6 @@ sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
 la $t9 string_14
-move $a0, $t9
-li $v0, 4
-syscall
-lw $v0 0($sp)
-addi $sp $sp 4
-lw $a0 0($sp)
-addi $sp $sp 4
-#print_s ends
-#print_s begins
-addi $sp $sp -4
-sw $a0 0($sp)
-addi $sp $sp -4
-sw $v0 0($sp)
-la $t9 string_15
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1493,7 +1479,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9 string_16
+la $t9 string_15
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1525,7 +1511,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9 string_17
+la $t9 string_16
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1557,6 +1543,20 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
+la $t9 string_17
+move $a0, $t9
+li $v0, 4
+syscall
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_s ends
+#print_s begins
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
 la $t9 string_18
 move $a0, $t9
 li $v0, 4
@@ -1572,20 +1572,6 @@ sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
 la $t9 string_19
-move $a0, $t9
-li $v0, 4
-syscall
-lw $v0 0($sp)
-addi $sp $sp 4
-lw $a0 0($sp)
-addi $sp $sp 4
-#print_s ends
-#print_s begins
-addi $sp $sp -4
-sw $a0 0($sp)
-addi $sp $sp -4
-sw $v0 0($sp)
-la $t9 string_20
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1615,7 +1601,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9 string_21
+la $t9 string_20
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1644,7 +1630,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t9 string_22
+la $t9 string_21
 move $a0, $t9
 li $v0, 4
 syscall
@@ -1757,7 +1743,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t8 string_23
+la $t8 string_22
 move $a0, $t8
 li $v0, 4
 syscall
@@ -1786,7 +1772,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t8 string_24
+la $t8 string_23
 move $a0, $t8
 li $v0, 4
 syscall
@@ -1905,6 +1891,21 @@ addi $sp $sp 4
 move $t8, $t9
 move $t9, $fp
 sw $t8, -20($t9)
+#print_i
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
+move $t8, $fp
+lw $t8, -20($t8)
+move $a0 $t8
+li $v0 1
+syscall
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_i over
 move $t8, $fp
 lw $t8, -20($t8)
 li $t9, 0
@@ -1915,7 +1916,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t8 string_25
+la $t8 string_24
 move $a0, $t8
 li $v0, 4
 syscall
@@ -1939,7 +1940,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t8 string_26
+la $t8 string_25
 move $a0, $t8
 li $v0, 4
 syscall
@@ -1957,6 +1958,20 @@ sw $t9, -16($t8)
 if_end_42:
 addi $sp $sp 0
 if_end_41:
+#print_s begins
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
+la $t9 string_26
+move $a0, $t9
+li $v0, 4
+syscall
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_s ends
 addi $sp $sp 0
 j while_start_40
 while_end_40:

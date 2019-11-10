@@ -756,7 +756,8 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			Register right = bo.right.accept(this);
 			// use left register as the destination
 
-			writeLine("addi " + left + ", " + left + ", " + right);
+			writeLine("negu " + right + ", " + right);
+			writeLine("add " + left + ", " + left + ", " + right);
 
 			freeRegister(right);
 			return left;

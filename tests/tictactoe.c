@@ -56,24 +56,23 @@ int set(char row, int col, char mark) {
   print_c(row);
   
   if (row == 'a') {
-  	print_s((char*)"aaaa");
      if (col == 1) {
         if (a11 == empty)
-	    a11 = mark;
-	else
-	  r = -1;
+	      a11 = mark;
+	    else
+	      r = -1;
      } else {
        if (col == 2) {
          if (a12 == empty)
            a12 = mark;
-	 else
-	   r = -1;
+	     else
+	       r = -1;
        } else {
          if (col == 3) {
-	   if (a13 == empty)
-              a13 = mark;
-	   else
-	     r = -1;
+	       if (a13 == empty)
+             a13 = mark;
+	       else
+	         r = -1;
          } else {
            r = 0;
          }
@@ -88,10 +87,10 @@ int set(char row, int col, char mark) {
 	    r = -1;
        } else {
          if (col == 2) {
-	    if (a22 == empty)
-              a22 = mark;
-	    else
-	      r = -1;
+	       if (a22 == empty)
+             a22 = mark;
+	       else
+	         r = -1;
          } else {
 	    if (col == 3) {
 	      if (a23 == empty)
@@ -132,6 +131,7 @@ int set(char row, int col, char mark) {
      }
    }
   }
+  
  return r;
 }
 
@@ -177,14 +177,17 @@ void selectmove(int player) {
 
     mark = get_mark(player);
     success = set(row,col,mark);
+    
+    print_i(success);
       if (success == 0) {
       	 print_s((char*)"That is not a valid move!\n");
       } else {
         if (success == -1)
-	  print_s((char*)"That move is not possible!\n");
+	      print_s((char*)"That move is not possible!\n");
         else
-	  selected = 0;
+	      selected = 0;
       }
+      print_s("did checks");
   }
 }
 
