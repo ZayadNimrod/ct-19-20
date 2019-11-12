@@ -62,33 +62,41 @@ maybeExp   ::= exp | ε
 
 block      ::= "{" vardeclRep stmtRep "}"
 
-exp        ::= noOpExp           
+
+
+exp        ::= //noOpExp           
              | binaryOp
+             
              
 #seperating exp out into these means we avoid the case where it loops around all the binary op levels until it parses a || as more tightly binding than && (for example) without brackets   
 noOpExp    ::=  "(" exp ")"
   			 | (IDENT | INT_LITERAL)
-             | "-" exp
              | CHAR_LITERAL
              | STRING_LITERAL
              | arrayaccess | fieldaccess | valueat | funcall | sizeof | typecast
+
              
              
 #precedence of operators taken from https://en.cppreference.com/w/c/language/operator_precedence
 
-##going to have to rewrite this
-binaryOp   ::= binaryOp2 ("||" binaryOp | ε) # binary operators; lowest precendece: OR
-             
-binaryOp2  ::= binaryOp3 ("&&" binaryOp2  | ε)
+#taken grammar from https://craftinginterpreters.com/parsing-expressions.html
 
-binaryOp3  ::= binaryOp4 (("!=" | "==") binaryOp3 | ε)
 
-binaryOp4  ::= binaryOp5 ((">" | "<" | ">=" | "<=" ) binaryOp4 | ε) 
+binaryOp	::= or
 
-binaryOp5  ::= binaryOp6 (("+" | "-") binaryOp5 | ε)
+or			::= and ("||" and)*
 
-binaryOp6  ::= noOpExp (("/" | "*" | "%") binaryOp6 | ε)
+and 		:: = equality ("&&" equality )*
 
+equality	::= comparision (("!="|"==") comparison )*
+
+comparision ::= addition ( ( ">" | ">=" | "<" | "<=" ) addition )*
+
+addition 	::= multiplication ( ( "-" | "+" ) multiplication )* 
+
+multiplication::= unary ( ( "/" | "*" | "%" ) unary )*
+
+unary		::= "-" unary  | noOpExp
 
 funcall      ::= IDENT "(" maybeArgs ")"
 

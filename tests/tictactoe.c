@@ -178,7 +178,6 @@ void selectmove(int player) {
     mark = get_mark(player);
     success = set(row,col,mark);
     
-    print_i(success);
       if (success == 0) {
       	 print_s((char*)"That is not a valid move!\n");
       } else {
@@ -187,7 +186,6 @@ void selectmove(int player) {
         else
 	      selected = 0;
       }
-      print_s("did checks");
   }
 }
 

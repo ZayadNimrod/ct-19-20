@@ -401,11 +401,18 @@ public class Parser {
 	}
 
 	private Expr parseExp() {
-		return parseExp(true);
+		try {
+			return parseBinOp();
+		} catch (StackOverflowError e) {
+			System.out.println("Failed to parse Expression due to infinite recursion\n");
+			error();
+
+			nextToken();
+			return null;
+		}
 	}
 
-	private Expr parseExp(boolean binOps) {
-
+	private Expr parseNoOpExp() {
 		// the scoreboard has an issue where we fail to parse an expression, so we enter
 		// an infinte recursion loop and crasyh
 		// and this is different from a "normal" failure to parse
@@ -413,17 +420,12 @@ public class Parser {
 
 			// dunno if I'll need this try-catch anymore, but it's better to be safe I guess
 
-			// exp ::= "(" exp ")" arrayOrFieldAccessOrBinaryOps
-			// | identOrFunCall arrayOrFieldAccessOrBinaryOps
-			// | INT_LITERAL arrayOrFieldAccessOrBinaryOps
-			// |"-" exp arrayOrFieldAccessOrBinaryOps
-			// | CHAR_LITERAL arrayOrFieldAccessOrBinaryOps
-			// | STRING_LITERAL arrayOrFieldAccessOrBinaryOps
-			// | valueat arrayOrFieldAccessOrBinaryOps
-			// | funcall arrayOrFieldAccessOrBinaryOps
-			// | sizeof arrayOrFieldAccessOrBinaryOps
-			// | typecast arrayOrFieldAccessOrBinaryOps
-			//
+//				noOpExp    ::=  "(" exp ")"
+//			  			 | (IDENT | INT_LITERAL)
+//			             | CHAR_LITERAL
+//			             | STRING_LITERAL
+//			             | arrayaccess | fieldaccess | valueat | funcall | sizeof | typecast
+
 			Expr ret = null;
 			if (accept(TokenClass.IDENTIFIER)) {
 				ret = parseIdentOrFunCall();
@@ -438,21 +440,19 @@ public class Parser {
 				expect(TokenClass.STRING_LITERAL);
 			} else if (accept(TokenClass.LPAR)) {
 				ret = parseBracketOrTypeCast();
-			} else if (accept(TokenClass.MINUS)) {
-				expect(TokenClass.MINUS);
-				ret = new BinOp(new IntLiteral(0), Op.SUB, parseExp());
 			} else if (accept(TokenClass.ASTERIX)) {
 				ret = parseValueAt();
 			} else if (accept(TokenClass.SIZEOF)) {
 				ret = parseSizeOf();
 			} else {
 				error(TokenClass.IDENTIFIER, TokenClass.INT_LITERAL, TokenClass.CHAR_LITERAL, TokenClass.STRING_LITERAL,
-						TokenClass.LPAR, TokenClass.MINUS, TokenClass.ASTERIX, TokenClass.SIZEOF);
+						TokenClass.LPAR, TokenClass.ASTERIX, TokenClass.SIZEOF);
 				nextToken();
 				return null;// doesn't matter what we return for ther AST since there is a parsing error
+
 			}
 
-			ret = parseArrayOrFieldAccessOrBinaryOps(ret, binOps);
+			ret = parseArrayOrFieldAccess(ret);
 			return ret;
 		} catch (StackOverflowError e) {
 			System.out.println("Failed to parse Expression due to infinite recursion\n");
@@ -461,7 +461,6 @@ public class Parser {
 			nextToken();
 			return null;
 		}
-
 	}
 
 	private ValueAtExpr parseValueAt() {
@@ -545,26 +544,14 @@ public class Parser {
 		return new TypecastExpr(t, e);
 	}
 
-	private Expr parseArrayOrFieldAccessOrBinaryOps(Expr previous, boolean binOps) {
-		// arrayOrFieldAccessOrBinaryOps :: = (arrayAccess | fieldAccess | binaryOps |
-		// ε)
+	private Expr parseArrayOrFieldAccess(Expr previous) {
+		// arrayOrFieldAccessOrBinaryOps :: = (arrayAccess | fieldAccess | ε)
 		Expr ret = previous;
-		boolean canLoop = true;
-		while (canLoop) {
-			if (accept(TokenClass.LSBR)) {
-				ret = parseArrayAccess(ret);
-			} else if (accept(TokenClass.DOT)) {
-				ret = parseFieldAccess(ret);
-			} else if (accept(TokenClass.GT, TokenClass.LT, TokenClass.GE, TokenClass.LE, TokenClass.NE, TokenClass.EQ,
-					TokenClass.PLUS, TokenClass.MINUS, TokenClass.DIV, TokenClass.ASTERIX, TokenClass.REM,
-					TokenClass.OR, TokenClass.AND) && binOps == true) {
-				// ">" | "<" | ">=" | "<=" | "!=" | "==" | "+" | "-" | "/" | "*" | "%" | "||" |
-				// "&&"
-				ret = parseBinaryOps(ret);
-			} else {
-				canLoop = false;
-			}
 
+		if (accept(TokenClass.LSBR)) {
+			ret = parseArrayAccess(ret);
+		} else if (accept(TokenClass.DOT)) {
+			ret = parseFieldAccess(ret);
 		}
 
 		return ret;
@@ -586,167 +573,166 @@ public class Parser {
 		return new FieldAccessExpr(struct, id);
 	}
 
-	private Expr parseBinaryOps(Expr left) {
-		// binaryOps := ( "||" |ε ) binaryOps2
-		boolean isAnOr = false;
+	private Expr parseBinOp() {
+		// binaryOp ::= or
+		return parseOr();
+	}
+
+	private Expr parseOr() {
+		// or ::= and ("||" and)*
+		Expr ret = parseAnd();
+
+		ret = parseOrRep(ret);
+
+		return ret;
+	}
+
+	private Expr parseOrRep(Expr left) {
 		if (accept(TokenClass.OR)) {
 			expect(TokenClass.OR);
-			isAnOr = true;
+			Expr right = parseAnd();
+			Expr ret = parseOrRep(new BinOp(left, Op.OR, right));
+			return ret;
 		}
-
-		Expr right = parseBinaryOps2(left);
-		if (isAnOr) {
-			return new BinOp(left, Op.OR, right);
-		} else {
-			return right;
-		}
+		return left;
 	}
 
-	private Expr parseBinaryOps2(Expr left) {
-		// binaryOps2 := ("&&" | ε ) binaryOps3
-		boolean isAnAnd = false;
+	private Expr parseAnd() {
+		// and :: = equality ("&&" equality )*
+		Expr ret = parseEquality();
+
+		ret = parseAndRep(ret);
+
+		return ret;
+	}
+
+	private Expr parseAndRep(Expr left) {
 		if (accept(TokenClass.AND)) {
 			expect(TokenClass.AND);
-			isAnAnd = true;
+			Expr right = parseEquality();
+			Expr ret = parseAndRep(new BinOp(left, Op.AND, right));
+			return ret;
 		}
-		Expr right = parseBinaryOps3(left);
-		if (isAnAnd) {
-			return new BinOp(left, Op.AND, right);
-		} else {
-			return right;
-		}
+		return left;
 	}
 
-	private Expr parseBinaryOps3(Expr left) {
-		// binaryOps3 := ( "!=" | "==" | ε) binaryOps4
+	private Expr parseEquality() {
+		// equality ::= comparision (("!="|"==") comparison )*
+		Expr ret = parseComparision();
 
-		boolean hasSym = false;
-		Op op = null;
-		if (accept(TokenClass.NE)) {
-			expect(TokenClass.NE);
-			op = Op.NE;
-			hasSym = true;
-		} else if (accept(TokenClass.EQ)) {
+		ret = parseEqualityRep(ret);
+
+		return ret;
+	}
+
+	private Expr parseEqualityRep(Expr left) {
+		if (accept(TokenClass.EQ)) {
 			expect(TokenClass.EQ);
-			op = Op.EQ;
-			hasSym = true;
+			Expr right = parseComparision();
+			Expr ret = parseEqualityRep(new BinOp(left, Op.EQ, right));
+			return ret;
+		} else if (accept(TokenClass.NE)) {
+			expect(TokenClass.NE);
+			Expr right = parseComparision();
+			Expr ret = parseEqualityRep(new BinOp(left, Op.NE, right));
+			return ret;
 		}
-		Expr right = parseBinaryOps4(left);
-
-		if (hasSym) {
-			return new BinOp(left, op, right);
-		} else {
-			return right;
-		}
-
+		return left;
 	}
 
-	private Expr parseBinaryOps4(Expr left) {
-		// binaryOps4 := (">" | "<" | ">=" | "<=" | ε) binaryOps5
+	private Expr parseComparision() {
+		// comparision ::= addition ( ( ">" | ">=" | "<" | "<=" ) addition )*
+		Expr ret = parseAddition();
 
-		boolean hasSym = false;
-		Op op = null;
+		ret = parseComparisionRep(ret);
+
+		return ret;
+	}
+
+	private Expr parseComparisionRep(Expr left) {
 		if (accept(TokenClass.GT)) {
 			expect(TokenClass.GT);
-			op = Op.GT;
-			hasSym = true;
-		} else if (accept(TokenClass.LT)) {
-			expect(TokenClass.LT);
-			op = Op.LT;
-			hasSym = true;
+			Expr right = parseAddition();
+			Expr ret = parseComparisionRep(new BinOp(left, Op.GT, right));
+			return ret;
 		} else if (accept(TokenClass.GE)) {
 			expect(TokenClass.GE);
-			op = Op.GE;
-			hasSym = true;
+			Expr right = parseAddition();
+			Expr ret = parseComparisionRep(new BinOp(left, Op.GE, right));
+			return ret;
+		} else if (accept(TokenClass.LT)) {
+			expect(TokenClass.LT);
+			Expr right = parseAddition();
+			Expr ret = parseComparisionRep(new BinOp(left, Op.LT, right));
+			return ret;
 		} else if (accept(TokenClass.LE)) {
 			expect(TokenClass.LE);
-			op = Op.LE;
-			hasSym = true;
+			Expr right = parseAddition();
+			Expr ret = parseComparisionRep(new BinOp(left, Op.LE, right));
+			return ret;
 		}
-
-		Expr right = parseBinaryOps5(left);
-
-		if (hasSym) {
-			return new BinOp(left, op, right);
-		} else {
-			return right;
-		}
-
+		return left;
 	}
 
-	private Expr parseBinaryOps5(Expr left) {
-		// := ( "+" | "-" | ε ) binaryOps6()
+	private Expr parseAddition() {
+		// addition ::= multiplication ( ( "-" | "+" ) multiplication )*
+		Expr ret = parseMultiplication();
+		ret = parseAdditionRep(ret);
+		return ret;
+	}
 
-		boolean hasSym = false;
-		Op op = null;
+	private Expr parseAdditionRep(Expr left) {
 		if (accept(TokenClass.PLUS)) {
 			expect(TokenClass.PLUS);
-			op = Op.ADD;
-			hasSym = true;
+			Expr right = parseMultiplication();
+			Expr ret = parseAdditionRep(new BinOp(left, Op.ADD, right));
+			return ret;
 		} else if (accept(TokenClass.MINUS)) {
 			expect(TokenClass.MINUS);
-			op = Op.SUB;
-			hasSym = true;
+			Expr right = parseMultiplication();
+			Expr ret = parseAdditionRep(new BinOp(left, Op.SUB, right));
+			return ret;
 		}
-
-		Expr right = parseBinaryOps6(left);
-
-		if (hasSym) {
-			return new BinOp(left, op, right);
-		} else {
-			return right;
-		}
-
+		return left;
 	}
 
-	private Expr parseBinaryOps6(Expr left) {
-		// binaryOps6 := ( "/" | "*" | "%" | ε ) exp
+	private Expr parseMultiplication() {
+		// multiplication::= unary ( ( "/" | "*" | "%" ) unary )*
+		Expr ret = parseUnary();
+		ret = parseMultiplicationRep(ret);
+		return ret;
 
-		boolean hasSym = false;
-		Op op = null;
-		if (accept(TokenClass.DIV)) {
+	}
+	
+	private Expr  parseMultiplicationRep(Expr left) {
+		if(accept(TokenClass.DIV)) {
 			expect(TokenClass.DIV);
-			op = Op.DIV;
-			hasSym = true;
-		} else if (accept(TokenClass.ASTERIX)) {
+			Expr right = parseUnary();
+			Expr ret = parseMultiplicationRep(new BinOp(left,Op.DIV,right));
+			return ret;
+		}else if (accept(TokenClass.ASTERIX)) {
 			expect(TokenClass.ASTERIX);
-			op = Op.MUL;
-			hasSym = true;
-		} else if (accept(TokenClass.REM)) {
+			Expr right = parseUnary();
+			Expr ret = parseMultiplicationRep(new BinOp(left,Op.MUL,right));
+			return ret;
+		}else if (accept(TokenClass.REM)) {
 			expect(TokenClass.REM);
-			op = Op.MOD;
-			hasSym = true;
+			Expr right = parseUnary();
+			Expr ret = parseMultiplicationRep(new BinOp(left,Op.MOD,right));
+			return ret;
 		}
-
-		if (accept(TokenClass.SC)) {
-			return left;
+		return left;
+		
+	}
+	
+	private Expr parseUnary() {
+		//unary		::= "-" unary  | noOpExp
+		if(accept(TokenClass.MINUS)) {
+			expect(TokenClass.MINUS);
+			return new BinOp(new IntLiteral(0),Op.SUB,parseUnary());
 		}
-		if (hasSym) {
-			// these operators bind most tightly, so we want to bind to the next token
-			// rather than the next expression...
-			if (!accept(TokenClass.LPAR)) {
-
-				Expr right = parseExp(false);
-				// get the next *expression that is not a binary operation*
-				Expr us = new BinOp(left, op, right);
-				return parseBinaryOps(us);
-
-			} else {
-				Expr right = parseExp();
-				return new BinOp(left, op, right);
-			}
-
-		} else {
-
-			if (accept(TokenClass.RPAR)) {
-				return left;
-			} else {
-
-				Expr right = parseExp();
-				return right;
-			}
-		}
-
+		return parseNoOpExp();
+	
 	}
 
 }

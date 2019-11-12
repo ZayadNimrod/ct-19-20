@@ -34,8 +34,9 @@ string_22: .asciiz "Player "
 string_23: .asciiz " select move (e.g. a2)>"
 string_24: .asciiz "That is not a valid move!\n"
 string_25: .asciiz "That move is not possible!\n"
-string_26: .asciiz "It's a draw!\n"
-string_27: .asciiz "Play again? (y/n)> "
+string_26: .asciiz "did checks"
+string_27: .asciiz "It's a draw!\n"
+string_28: .asciiz "Play again? (y/n)> "
 .text
 function_main:
 #prologue start
@@ -366,7 +367,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t8 string_26
+la $t8 string_27
 move $a0, $t8
 li $v0, 4
 syscall
@@ -435,7 +436,7 @@ addi $sp $sp -4
 sw $a0 0($sp)
 addi $sp $sp -4
 sw $v0 0($sp)
-la $t8 string_27
+la $t8 string_28
 move $a0, $t8
 li $v0, 4
 syscall
@@ -1890,6 +1891,21 @@ addi $sp $sp 4
 move $t8, $t9
 move $t9, $fp
 sw $t8, -20($t9)
+#print_i
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
+move $t8, $fp
+lw $t8, -20($t8)
+move $a0 $t8
+li $v0 1
+syscall
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_i over
 move $t8, $fp
 lw $t8, -20($t8)
 li $t9, 0
@@ -1940,6 +1956,20 @@ sw $t9, -16($t8)
 if_end_42:
 addi $sp $sp 0
 if_end_41:
+#print_s begins
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
+la $t9 string_26
+move $a0, $t9
+li $v0, 4
+syscall
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_s ends
 addi $sp $sp 0
 j while_start_40
 while_end_40:
