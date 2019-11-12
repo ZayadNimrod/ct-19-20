@@ -24,6 +24,12 @@ int main(){
 	//print_i(*intArrPtr[1]);
 	//print_i(*intArrPtr[2]);
 	
+	*charPtr = *charPtr2;
+	
+	print_i(*intPtr);
+	print_c(*charPtr);
+	print_c(*charPtr2);
+	
 	return 0;
 	
 

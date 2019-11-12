@@ -132,9 +132,70 @@ addi $sp $sp 4
 lw $a0 0($sp)
 addi $sp $sp 4
 #print_c over
+move $t9, $fp
+lw $t9, -12($t9)
+lw $t9 0($t9)
+move $t8, $t9
+move $t9, $fp
+lw $t9, -8($t9)
+sw $t8, 0($t9)
+#print_i
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
+move $t8, $fp
+lw $t8, -4($t8)
+lw $t8 0($t8)
+move $a0 $t8
+li $v0 1
+syscall
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_i over
+#print_c
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
+move $t8, $fp
+lw $t8, -8($t8)
+lw $t8 0($t8)
+addi $sp $sp -4
+sw $t8 0($sp)
+move $a0 $sp
+li $v0 4
+syscall
+addi $sp $sp 4
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_c over
+#print_c
+addi $sp $sp -4
+sw $a0 0($sp)
+addi $sp $sp -4
+sw $v0 0($sp)
+move $t8, $fp
+lw $t8, -12($t8)
+lw $t8 0($t8)
+addi $sp $sp -4
+sw $t8 0($sp)
+move $a0 $sp
+li $v0 4
+syscall
+addi $sp $sp 4
+lw $v0 0($sp)
+addi $sp $sp 4
+lw $a0 0($sp)
+addi $sp $sp 4
+#print_c over
 #returning from main
-li $t9, 0
-move $v0 $t9
+li $t8, 0
+move $v0 $t8
 addi $sp $sp 12
 li $v0, 10
 syscall
