@@ -113,9 +113,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 		main.accept(this);
 
-		// TODO return values?
-		// TODO what if a void function has no return stmt
-
 		// exit properly from main
 		writeLine("li $v0, 10");
 		writeLine("syscall");
@@ -128,7 +125,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	}
 
 	private void visitGlobal(VarDecl v) {
-		// TODO check the type of the variable.
 
 		int size = getSizeOf(v.type);
 		size = (int) Math.ceil(size / 4.0) * 4;
@@ -174,20 +170,20 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			v.accept(this);
 			size += (int) (Math.ceil(getSizeOf(v.type) / 4.0) * 4);
 		}
-		// functionVarOffsets += size;
-		// TODO; is that bit even necessary?
-		Register ret = null;
 		for (Stmt s : b.code) {
 			Register r = s.accept(this);
+
 			if (r != null) {
-				ret = r;
+				if (Register.tmpRegs.contains(r)) {
+					freeRegister(r);
+				}
 			}
 		}
 
 		// free up those vars
 		writeLine("addi $sp $sp " + size);
 		functionVarOffsets -= size;
-		return ret;
+		return Register.v0;
 	}
 
 	@Override
@@ -371,7 +367,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 			// this is a global
 			value = getRegister();
-			writeLine("la " + value + ", " + v.name);			
+			writeLine("la " + value + ", " + v.name);
 			writeLine("lw " + value + ", 0(" + value + ")");
 		} else {
 			// get address of variable, which is our current frame pointer+offset
@@ -387,8 +383,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		return value;
 	}
 
-	
-
 	@Override
 	public Register visitFunCallExpr(FunCallExpr fc) {
 		if (fc.name.equals("print_i")) {
@@ -401,6 +395,8 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			return visitRead_c(fc);
 		} else if (fc.name.equals("print_c")) {
 			return visitPrint_c(fc);
+		}else if (fc.name.equals("mcmalloc")) {
+			return visitMCMalloc(fc);
 		}
 
 		// TODO: what about struct arguments, can't put those in an arg
@@ -592,7 +588,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("syscall");
 		Register ret = getRegister();
 		writeLine("move " + ret + ", " + Register.v0);
-		
+
 		writeLine("lw $v0 0($sp)");
 		writeLine("addi $sp $sp 4");
 		writeLine("#read_c ends");
@@ -627,6 +623,34 @@ public class CodeGenerator implements ASTVisitor<Register> {
 		writeLine("addi $sp $sp 4");
 		writeLine("#print_c over");
 		return null;
+	}
+
+	private Register visitMCMalloc(FunCallExpr fc) {
+		writeLine("#mcmalloc");
+		
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $a0 0($sp)");
+		writeLine("addi $sp $sp -4");
+		writeLine("sw $v0 0($sp)");
+		
+		Register numBytes = fc.args.get(0).accept(this);
+		writeLine("move $a0 "+numBytes);
+		freeRegister(numBytes);
+		writeLine("li $v0 9");
+		writeLine("syscall");
+		
+		Register ret = getRegister();
+		writeLine("move "+ret+" $v0");
+		
+		
+		writeLine("lw $v0 0($sp)");
+		writeLine("addi $sp $sp 4");
+		writeLine("lw $a0 0($sp)");
+		writeLine("addi $sp $sp 4");
+		
+		
+		writeLine("#mcmalloc over");
+		return ret;
 	}
 
 	@Override
@@ -904,7 +928,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	protected Register visitGT(BinOp bo) {
 		// check this is an immediate operation
-		System.out.println("GT BEGIN");
+
 		if (bo.left instanceof IntLiteral && bo.right instanceof IntLiteral) {
 			// both are int literals
 			Register result = getRegister();
@@ -943,7 +967,6 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			writeLine("#gt last case end");
 			freeRegister(right);
 
-			System.out.println("GT END");
 			return left;
 		}
 
@@ -1174,8 +1197,9 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			// return from main
 			writeLine("#returning from main");
 			Register reg = r.expr.accept(this);
+			writeLine("move $v0 " + reg);
 			freeRegister(reg);
-			return reg;
+			return Register.v0;
 		} else {
 			// any "normal" function
 			Register reg = r.expr.accept(this);
@@ -1191,7 +1215,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 	@Override
 	public Register visitValueAtExpr(ValueAtExpr va) {
 		Register address = va.expr.accept(this);
-		writeLine("lw " + address + "0(" + address + ")");
+		writeLine("lw " + address + " 0(" + address + ")");
 		return address;
 	}
 
