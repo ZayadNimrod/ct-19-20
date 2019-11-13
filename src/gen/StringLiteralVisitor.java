@@ -231,7 +231,9 @@ public class StringLiteralVisitor implements ASTVisitor<Void> {
 
 	@Override
 	public Void visitReturn(Return r) {
-		r.expr.accept(this);
+		if (r.expr != null) {
+			r.expr.accept(this);
+		}
 		return null;
 	}
 

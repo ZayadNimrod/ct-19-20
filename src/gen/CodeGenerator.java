@@ -395,7 +395,7 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			return visitRead_c(fc);
 		} else if (fc.name.equals("print_c")) {
 			return visitPrint_c(fc);
-		}else if (fc.name.equals("mcmalloc")) {
+		} else if (fc.name.equals("mcmalloc")) {
 			return visitMCMalloc(fc);
 		}
 
@@ -627,28 +627,26 @@ public class CodeGenerator implements ASTVisitor<Register> {
 
 	private Register visitMCMalloc(FunCallExpr fc) {
 		writeLine("#mcmalloc");
-		
+
 		writeLine("addi $sp $sp -4");
 		writeLine("sw $a0 0($sp)");
 		writeLine("addi $sp $sp -4");
 		writeLine("sw $v0 0($sp)");
-		
+
 		Register numBytes = fc.args.get(0).accept(this);
-		writeLine("move $a0 "+numBytes);
+		writeLine("move $a0 " + numBytes);
 		freeRegister(numBytes);
 		writeLine("li $v0 9");
 		writeLine("syscall");
-		
+
 		Register ret = getRegister();
-		writeLine("move "+ret+" $v0");
-		
-		
+		writeLine("move " + ret + " $v0");
+
 		writeLine("lw $v0 0($sp)");
 		writeLine("addi $sp $sp 4");
 		writeLine("lw $a0 0($sp)");
 		writeLine("addi $sp $sp 4");
-		
-		
+
 		writeLine("#mcmalloc over");
 		return ret;
 	}
@@ -1202,9 +1200,12 @@ public class CodeGenerator implements ASTVisitor<Register> {
 			return Register.v0;
 		} else {
 			// any "normal" function
-			Register reg = r.expr.accept(this);
-			writeLine("move " + Register.v0 + ", " + reg);
-			freeRegister(reg);
+
+			if (r.expr != null) {
+				Register reg = r.expr.accept(this);
+				writeLine("move " + Register.v0 + ", " + reg);
+				freeRegister(reg);
+			}
 			writeLine("#returning from function");
 
 			epilogue();
