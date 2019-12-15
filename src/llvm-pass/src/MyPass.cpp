@@ -39,7 +39,7 @@ static RegisterStandardPasses Y(
 
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
-
+#include "llvm/Transforms/Utils/Local.h"
 using namespace llvm;
 using namespace std;
 
@@ -67,9 +67,9 @@ struct SimpleDCE : public FunctionPass
         {
           //i is an instruction
           //remove it if it is dead
-          //if (isInstructionTriviallyDead(i))
+          if (llvm::isInstructionTriviallyDead(&(*i),nullptr))
           
-          if (true)
+          //if (true)
           {
             workList.push_back(&(*i));
             removed = true;
