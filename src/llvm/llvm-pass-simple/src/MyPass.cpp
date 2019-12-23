@@ -23,7 +23,7 @@ struct MyPass : public FunctionPass {
 }
 
 char MyPass::ID = 0;
-static RegisterPass<MyPass> X("mypass", "My own pass");
+static RegisterPass<MyPass> X("mypass", "My simple dead code elimination pass");
 
 static RegisterStandardPasses Y(
     PassManagerBuilder::EP_EarlyAsPossible,
@@ -78,7 +78,7 @@ struct SimpleDCE : public FunctionPass
       }
 
       //remove dead instructions
-      errs() << "Removed " << workList.size() << " instruction(s)\n";
+      errs() << "Removed " << workList.size() << " instruction(s)";
       for (int j = 0; j < workList.size(); ++j)
       {
         workList[j]->eraseFromParent();
