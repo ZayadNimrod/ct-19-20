@@ -1,36 +1,3 @@
-// Example of how to write an LLVM pass
-// For more information see: http://llvm.org/docs/WritingAnLLVMPass.html
-/*
-#include "llvm/Pass.h"
-#include "llvm/IR/Function.h"
-#include "llvm/Support/raw_ostream.h"
-
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
-http://snappytomatopizza.com/
-using namespace llvm;
-
-namespace {
-struct MyPass : public FunctionPass {
-  static char ID;
-  MyPass() : FunctionPass(ID) {}
-
-  bool runOnFunction(Function &F) override {
-    errs() << "I saw a function called " << F.getName() << "!\n";
-    return false;
-  }
-};
-}
-
-char MyPass::ID = 0;
-static RegisterPass<MyPass> X("mypass", "My simple dead code elimination pass");
-
-static RegisterStandardPasses Y(
-    PassManagerBuilder::EP_EarlyAsPossible,
-    [](const PassManagerBuilder &Builder,
-       legacy::PassManagerBase &PM) { PM.add(new MyPass()); });
-
-*/
 #define DEBUG_TYPE "simpleDeadCodeEliminator"
 #include "llvm/Pass.h"
 #include "llvm/IR/Function.h"
@@ -51,13 +18,13 @@ struct SimpleDCE : public FunctionPass
   SimpleDCE() : FunctionPass(ID) {}
   bool runOnFunction(Function &F) override
   {
-    errs() << "Function " << F.getName() << '\n';
+    //errs() << "Function " << F.getName() << '\n';
 
     bool removed = false;
     do
     {
       removed = false;
-      //TODO: free up worklist first to avoid memory leaks?
+      //TODO: figure out how to use SmallVector as required
       vector<Instruction*> workList;
       workList.clear();
       //go through each instruction
@@ -78,9 +45,10 @@ struct SimpleDCE : public FunctionPass
       }
 
       //remove dead instructions
-      errs() << "Removed " << workList.size() << " instruction(s)";
+      //errs() << "Removed " << workList.size() << " instruction(s)\n";
       for (int j = 0; j < workList.size(); ++j)
       {
+
         workList[j]->eraseFromParent();
       }
 
