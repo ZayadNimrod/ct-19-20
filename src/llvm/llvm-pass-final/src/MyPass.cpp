@@ -1,9 +1,12 @@
 #define DEBUG_TYPE "simpleDeadCodeEliminator"
 #include "llvm/Pass.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/InstIterator.h"
 #include "llvm/Support/raw_ostream.h"
 #include <vector>
 #include <map>
+#include <algorithm>
 #include <set>
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
@@ -17,8 +20,9 @@ struct FinalDCE : public FunctionPass
 {
   struct LiveSets
   {
-    set<Instruction *> liveIn;
-    set<Instruction *> liveOut;
+    set<Value *> liveIn;
+    set<Value *> liveOut;
+    map<BasicBlock *, set<Value *>> useSets;
   };
   static char ID;
   FinalDCE() : FunctionPass(ID) {}
@@ -26,7 +30,7 @@ struct FinalDCE : public FunctionPass
   {
     //errs() << "Function " << F.getName() << '\n';
 
-    map<BasicBlock *, LiveSets> initialAnalysis = DoLivenessAnalysis(F);
+    map<Instruction *, LiveSets> initialAnalysis = DoLivenessAnalysis(F);
     printLiveness(F, initialAnalysis);
     bool removed = false;
     do
@@ -37,7 +41,7 @@ struct FinalDCE : public FunctionPass
       vector<Instruction *> workList;
       workList.clear();
       //go through each instruction
-      map<BasicBlock *, LiveSets> analysis = DoLivenessAnalysis(F);
+      map<Instruction *, LiveSets> analysis = DoLivenessAnalysis(F);
       for (Function::iterator bb = F.begin(), e = F.end(); bb != e; ++bb)
       {
         for (BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; ++i)
@@ -47,9 +51,9 @@ struct FinalDCE : public FunctionPass
           bool isDead = true;
           Instruction *instr = &(*i);
           //instruction is dead if it exists in no live-out sets
-          for (auto const &x : analysis)
+          for (auto &x : analysis)
           {
-            set<Instruction *> l = x.second.liveOut;
+            set<Value *> l = x.second.liveOut;
             //if live-out contains instr, we're good
             if (find(l.begin(), l.end(), instr) != l.end())
             {
@@ -63,16 +67,20 @@ struct FinalDCE : public FunctionPass
           //if (true)
           {
             workList.push_back(instr);
-            removed = true;
           }
         }
       }
 
       //remove dead instructions
-      errs() << "Final DCE: Removed " << workList.size() << " instruction(s)\n";
+      //errs() << "Final DCE: Removed " << workList.size() << " instruction(s)\n";
       for (int j = 0; j < workList.size(); ++j)
       {
-        workList[j]->eraseFromParent();
+        if (!isa<TerminatorInst>(workList[j]))
+        {
+          //errs() << *(workList[j]) << "\n";
+          workList[j]->eraseFromParent();
+          removed = true;
+        }
       }
 
     } while (removed);
@@ -81,17 +89,16 @@ struct FinalDCE : public FunctionPass
   }
 
   //does the liveness analysis, returns set of basic blocks with thier live-in and live-out sets
-  map<BasicBlock *, LiveSets> DoLivenessAnalysis(Function &F)
+  map<Instruction *, LiveSets> DoLivenessAnalysis(Function &F)
   {
-    map<BasicBlock *, LiveSets> analysis;
+    map<Instruction *, LiveSets> analysis;
     //initialise live-in and live-out sets
     for (Function::iterator bb = F.begin(), e = F.end(); bb != e; ++bb)
     {
-      //for (BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; ++i)
-      //{
-      //Instruction *instr = &(*i);
-      analysis[&(*bb)] = {};
-      //}
+      for (BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; ++i)
+      {
+        analysis[&(*i)] = {};
+      }
     }
 
     bool change = false;
@@ -106,67 +113,139 @@ struct FinalDCE : public FunctionPass
         {
 
           Instruction *instr = &(*i);
-          for (int v = 0; v < instr->getNumOperands(); v++)
+          auto origLiveIn = analysis[instr].liveIn;
+          auto origLiveOut = analysis[instr].liveOut;
+          auto origUse = analysis[instr].useSets;
+          analysis[instr].liveIn.clear();
+
+          //analysis[instr].liveIn.insert(instr);
+
+          set<Value *> defined = {instr};
+          set<Value *> use;
+          PHINode *phi = dyn_cast<PHINode>(instr);
+          if (phi == nullptr)
           {
-            Instruction *variable = dyn_cast<Instruction>(instr->getOperand(v));
-            if (variable != nullptr)
+            for (int j = 0; j < instr->getNumOperands(); j++)
             {
-              int origSize = analysis[block].liveIn.size();
-              analysis[block].liveIn.insert(variable);
-              if (origSize < analysis[block].liveIn.size()) //i.e it actually added something
+              Value *val = instr->getOperand(j);
+              if (isa<Instruction>(val) || isa<Argument>(val))
               {
-                change = true;
+                use.insert(val);
+              }
+            }
+            BranchInst *branch = dyn_cast<BranchInst>(instr);
+            if (branch != nullptr)
+            {
+              if (branch->isConditional())
+              {
+                Value *cond = branch->getCondition();
+                if (isa<Argument>(cond) || isa<Instruction>(cond))
+                {
+                  //errs() << "Added conditon:" << *cond << "\n";
+                  use.insert(cond);
+                }
               }
             }
           }
-        }
-
-        //all-live-in variables in this block are live-out in prdecessors
-        for (auto i = analysis[block].liveIn.begin(), e = analysis[block].liveIn.end();i!=e;i++)
-        {
-          for (auto it = pred_begin(block), et = pred_end(block); it != et; ++it)
+          else
           {
-            BasicBlock *pred = *it;
-
-            int origSize = analysis[pred].liveOut.size();
-            analysis[pred].liveOut.insert(*i);
-            if (origSize < analysis[pred].liveOut.size())
+            for (int j = 0; j < phi->getNumIncomingValues(); j++)
             {
-              change = true;
+              Value *val = phi->getIncomingValue(j);
+              BasicBlock *sourceBlock = phi->getIncomingBlock(j);
+              if (isa<Instruction>(val) || isa<Argument>(val))
+              {
+                analysis[phi].useSets[sourceBlock].insert(val);
+              }
+            }
+            //take into account multiple phi nodes, proogate use sets upwards to top
+            Instruction *next = instr->getNextNode();
+            PHINode *nextPhi = dyn_cast<PHINode>(next);
+            while (nextPhi != nullptr)
+            {
+              //appent use sets for each source block to mine
+              for (int j = 0; j < nextPhi->getNumIncomingValues(); j++)
+              {
+                Value *nextVal = nextPhi->getIncomingValue(j);
+                BasicBlock *nextSourceBlock = phi->getIncomingBlock(j);
+                if (isa<Instruction>(nextVal) || isa<Argument>(nextVal))
+                {
+                  analysis[instr].useSets[nextSourceBlock].insert(nextVal);
+                }
+              }
+              next = next->getNextNode();
+              if (next == nullptr)
+              {
+                nextPhi = nullptr;
+              }
+              else
+              {
+                PHINode *nextPhi = dyn_cast<PHINode>(next);
+              }
             }
           }
-        }
+          set<Value *> tempset;
+          set_difference(analysis[instr].liveOut.begin(), analysis[instr].liveOut.end(), defined.begin(), defined.end(), inserter(tempset, tempset.begin()));
+          set_union(use.begin(), use.end(), tempset.begin(), tempset.end(), inserter(analysis[instr].liveIn, analysis[instr].liveIn.begin()));
+          analysis[instr].liveOut.clear();
+          //outset of combination of all successor nodes
+          vector<BasicBlock *> succs;
 
-        //if a variable is live-out and not defined here, then it is also live-in
-        for (auto i = analysis[block].liveOut.begin(), ed = analysis[block].liveOut.end();i!=ed;i++)
-        {
-          bool definedInBlock = false;
-          for (BasicBlock::iterator ii = bb->begin(), e = bb->end(); ii != e; ++ii)
+          if (!instr->isTerminator())
           {
-            Instruction *instr = &(*ii);
-            if (instr == *i)
+            Instruction *next = instr->getNextNode();
+            for(auto i:analysis[next].liveIn)
+              analysis[instr].liveOut.insert(i);
+            //analysis[instr].liveOut.insert(next);
+          }
+          else
+          {
+            //last inst in basic block, get next block
+            TerminatorInst *term = dyn_cast<TerminatorInst>(instr);
+            int succs = term->getNumSuccessors();
+            for (int k = 0; k < succs; k++)
             {
-              definedInBlock = true;
-              break;
+              BasicBlock *blok = term->getSuccessor(k);
+              //add the first nodes in to my out
+              for (auto kk : analysis[&*(blok->begin())].liveIn)
+              {
+                if (isa<Argument>(kk) || isa<Instruction>(kk))
+                {
+                  analysis[instr].liveOut.insert(kk);
+                }
+              }
+
+              if (isa<PHINode>(blok->begin()))
+              {
+
+                //if (analysis[&*(blok->begin())].useSets.contains(instr->getParent()))
+                {
+                  set<Value *> u = analysis[&*(blok->begin())].useSets[instr->getParent()];
+                  for (Value *v : u)
+                  {
+                    if (isa<Argument>(v) || isa<Instruction>(v))
+                    {
+                      analysis[instr].liveOut.insert(v);
+                    }
+                  }
+                }
+              }
             }
           }
-          if (!definedInBlock)
+
+          if ((origLiveIn != analysis[instr].liveIn) || origLiveOut != analysis[instr].liveOut)
           {
-             int origSize = analysis[block].liveIn.size();
-             analysis[block].liveIn.insert(*i);
-            if(origSize < analysis[block].liveIn.size()){
-              change = true;
-            }
+            change = true;
           }
         }
       }
-      //printLiveness(F, analysis);
     } while (change);
 
     return analysis;
   }
 
-  void printLiveness(Function &F, map<BasicBlock *, LiveSets> analysis)
+  void
+  printLiveness(Function &F, map<Instruction *, LiveSets> analysis)
   {
     for (Function::iterator bb = F.begin(), end = F.end(); bb != end; bb++)
     {
@@ -178,7 +257,7 @@ struct FinalDCE : public FunctionPass
 
         errs() << "{";
 
-        auto operatorSet = analysis[&(*bb)].liveIn;
+        auto operatorSet = analysis[&(*i)].liveIn;
         for (auto oper = operatorSet.begin(); oper != operatorSet.end(); oper++)
         {
           auto op = *oper;
@@ -198,8 +277,3 @@ struct FinalDCE : public FunctionPass
 } // namespace
 char FinalDCE::ID = 0;
 static RegisterPass<FinalDCE> X("mypass", "My pass : Elminates dead code");
-
-static RegisterStandardPasses Y(
-    PassManagerBuilder::EP_EarlyAsPossible,
-    [](const PassManagerBuilder &Builder,
-       legacy::PassManagerBase &PM) { PM.add(new FinalDCE()); });
