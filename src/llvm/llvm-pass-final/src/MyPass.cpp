@@ -3,7 +3,8 @@
 #include "llvm/IR/Function.h"
 #include "llvm/Support/raw_ostream.h"
 #include <vector>
-
+#include <map>
+#include <set>
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/Transforms/Utils/Local.h"
@@ -14,89 +15,186 @@ namespace
 {
 struct FinalDCE : public FunctionPass
 {
+  struct LiveSets
+  {
+    set<Instruction *> liveIn;
+    set<Instruction *> liveOut;
+  };
   static char ID;
   FinalDCE() : FunctionPass(ID) {}
   bool runOnFunction(Function &F) override
   {
-    errs() << "Function " << F.getName() << ":\n";
+    //errs() << "Function " << F.getName() << '\n';
 
+    map<BasicBlock *, LiveSets> initialAnalysis = DoLivenessAnalysis(F);
+    printLiveness(F, initialAnalysis);
     bool removed = false;
     do
     {
+      //do the liveness analysis
 
       removed = false;
-
-      vector<Instruction *> unused;
-      unused.clear();
-      //set up unused array, all instructions are considered unused until they prove otherwise
-      for (Function::iterator bb = F.begin(), e = F.end(); bb != e; ++bb)
-      {
-        for (BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; ++i)
-        {
-          Instruction *instr = &*i;
-          unused.push_back(instr);
-        }
-      }
-
+      vector<Instruction *> workList;
+      workList.clear();
       //go through each instruction
-      //check operands, mark them as used
+      map<BasicBlock *, LiveSets> analysis = DoLivenessAnalysis(F);
       for (Function::iterator bb = F.begin(), e = F.end(); bb != e; ++bb)
       {
-
         for (BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; ++i)
         {
-
-          Instruction *instr = &*i;
-          errs() << "| " << *instr << " \n";
-          //get the operands
-          int numOps = instr->getNumOperands();
-          if (numOps == 0 || numOps == 1)
+          //i is an instruction
+          //remove it if it is dead
+          bool isDead = true;
+          Instruction *instr = &(*i);
+          //instruction is dead if it exists in no live-out sets
+          for (auto const &x : analysis)
           {
-            //either way, this is never "used", but is probably important, so this should not be removed
-            //errs() << "No operands!\n";
-            unused.erase(remove(unused.begin(), unused.end(), instr), unused.end());
-          }
-          for (int j = 0; j < numOps; j++)
-          {
-            Value *op = instr->getOperand(j);
-            //check if op is a variable, if so, remove from unused
-            //Instruction *reg = (dynamic_cast<Instruction*>(op));
-
-            //errs() << "? " << *op << " \n";
-            if (find(unused.begin(), unused.end(), op) != unused.end())
+            set<Instruction *> l = x.second.liveOut;
+            //if live-out contains instr, we're good
+            if (find(l.begin(), l.end(), instr) != l.end())
             {
-              //the operand is a)an Instruction and b)has not already been used (if it has then it doesn't really matter who uses it)
-              unused.erase(remove(unused.begin(), unused.end(), op), unused.end());
+              isDead = false;
+              break;
             }
+          }
+
+          if (isDead)
+
+          //if (true)
+          {
+            workList.push_back(instr);
+            removed = true;
           }
         }
       }
 
       //remove dead instructions
-      errs() << "Removed " << unused.size() << " instruction(s)\n";
-      //Go through each intruction, delete the ones that are never unused later
-      for (int j = 0; j < unused.size(); ++j)
+      errs() << "Final DCE: Removed " << workList.size() << " instruction(s)\n";
+      for (int j = 0; j < workList.size(); ++j)
       {
-        //evrything gets put here...?
-        //we're removing Ret??
-        errs() << "removed " << *(unused[j]) << " \n";
-        unused[j]->eraseFromParent();
-        removed = true;
+        workList[j]->eraseFromParent();
       }
 
     } while (removed);
-    errs() << "Finished Dead Code Elimination!\n";
-     for (Function::iterator bb = F.begin(), e = F.end(); bb != e; ++bb)
-      {
-        for (BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; ++i)
-        {
-          Instruction *instr = &*i;
-          errs() << "" << *instr << " \n";
-        }
-      }
+
     return false;
   }
-};
+
+  //does the liveness analysis, returns set of basic blocks with thier live-in and live-out sets
+  map<BasicBlock *, LiveSets> DoLivenessAnalysis(Function &F)
+  {
+    map<BasicBlock *, LiveSets> analysis;
+    //initialise live-in and live-out sets
+    for (Function::iterator bb = F.begin(), e = F.end(); bb != e; ++bb)
+    {
+      //for (BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; ++i)
+      //{
+      //Instruction *instr = &(*i);
+      analysis[&(*bb)] = {};
+      //}
+    }
+
+    bool change = false;
+    do
+    {
+      change = false;
+      for (Function::iterator bb = F.begin(), e = F.end(); bb != e; ++bb)
+      {
+        //all variables defined in block are in the live-in set
+        BasicBlock *block = &(*bb);
+        for (BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; ++i)
+        {
+
+          Instruction *instr = &(*i);
+          for (int v = 0; v < instr->getNumOperands(); v++)
+          {
+            Instruction *variable = dyn_cast<Instruction>(instr->getOperand(v));
+            if (variable != nullptr)
+            {
+              int origSize = analysis[block].liveIn.size();
+              analysis[block].liveIn.insert(variable);
+              if (origSize < analysis[block].liveIn.size()) //i.e it actually added something
+              {
+                change = true;
+              }
+            }
+          }
+        }
+
+        //all-live-in variables in this block are live-out in prdecessors
+        for (auto i = analysis[block].liveIn.begin(), e = analysis[block].liveIn.end();i!=e;i++)
+        {
+          for (auto it = pred_begin(block), et = pred_end(block); it != et; ++it)
+          {
+            BasicBlock *pred = *it;
+
+            int origSize = analysis[pred].liveOut.size();
+            analysis[pred].liveOut.insert(*i);
+            if (origSize < analysis[pred].liveOut.size())
+            {
+              change = true;
+            }
+          }
+        }
+
+        //if a variable is live-out and not defined here, then it is also live-in
+        for (auto i = analysis[block].liveOut.begin(), ed = analysis[block].liveOut.end();i!=ed;i++)
+        {
+          bool definedInBlock = false;
+          for (BasicBlock::iterator ii = bb->begin(), e = bb->end(); ii != e; ++ii)
+          {
+            Instruction *instr = &(*ii);
+            if (instr == *i)
+            {
+              definedInBlock = true;
+              break;
+            }
+          }
+          if (!definedInBlock)
+          {
+             int origSize = analysis[block].liveIn.size();
+             analysis[block].liveIn.insert(*i);
+            if(origSize < analysis[block].liveIn.size()){
+              change = true;
+            }
+          }
+        }
+      }
+      //printLiveness(F, analysis);
+    } while (change);
+
+    return analysis;
+  }
+
+  void printLiveness(Function &F, map<BasicBlock *, LiveSets> analysis)
+  {
+    for (Function::iterator bb = F.begin(), end = F.end(); bb != end; bb++)
+    {
+      for (BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; i++)
+      {
+        // skip phis
+        if (dyn_cast<PHINode>(i))
+          continue;
+
+        errs() << "{";
+
+        auto operatorSet = analysis[&(*bb)].liveIn;
+        for (auto oper = operatorSet.begin(); oper != operatorSet.end(); oper++)
+        {
+          auto op = *oper;
+          if (oper != operatorSet.begin())
+            errs() << ", ";
+          (*oper)->printAsOperand(errs(), false);
+        }
+
+        errs() << "}\n";
+      }
+    }
+    errs() << "{}\n";
+  }
+
+}; // namespace
+
 } // namespace
 char FinalDCE::ID = 0;
 static RegisterPass<FinalDCE> X("mypass", "My pass : Elminates dead code");
