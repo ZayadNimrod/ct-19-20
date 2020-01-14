@@ -75,7 +75,7 @@ struct FinalDCE : public FunctionPass
       //errs() << "Final DCE: Removed " << workList.size() << " instruction(s)\n";
       for (int j = 0; j < workList.size(); ++j)
       {
-        if (!isa<TerminatorInst>(workList[j]))
+        if (!(workList[j])->isTerminator())
         {
           //errs() << *(workList[j]) << "\n";
           workList[j]->eraseFromParent();
@@ -160,27 +160,30 @@ struct FinalDCE : public FunctionPass
             }
             //take into account multiple phi nodes, proogate use sets upwards to top
             Instruction *next = instr->getNextNode();
-            PHINode *nextPhi = dyn_cast<PHINode>(next);
-            while (nextPhi != nullptr)
+            if (next != nullptr)
             {
-              //appent use sets for each source block to mine
-              for (int j = 0; j < nextPhi->getNumIncomingValues(); j++)
+              PHINode *nextPhi = dyn_cast<PHINode>(next);
+              while (nextPhi != nullptr)
               {
-                Value *nextVal = nextPhi->getIncomingValue(j);
-                BasicBlock *nextSourceBlock = phi->getIncomingBlock(j);
-                if (isa<Instruction>(nextVal) || isa<Argument>(nextVal))
+                //appent use sets for each source block to mine
+                for (int j = 0; j < nextPhi->getNumIncomingValues(); j++)
                 {
-                  analysis[instr].useSets[nextSourceBlock].insert(nextVal);
+                  Value *nextVal = nextPhi->getIncomingValue(j);
+                  BasicBlock *nextSourceBlock = phi->getIncomingBlock(j);
+                  if (isa<Instruction>(nextVal) || isa<Argument>(nextVal))
+                  {
+                    analysis[instr].useSets[nextSourceBlock].insert(nextVal);
+                  }
                 }
-              }
-              next = next->getNextNode();
-              if (next == nullptr)
-              {
-                nextPhi = nullptr;
-              }
-              else
-              {
-                PHINode *nextPhi = dyn_cast<PHINode>(next);
+                next = next->getNextNode();
+                if (next == nullptr)
+                {
+                  nextPhi = nullptr;
+                }
+                else
+                {
+                  PHINode *nextPhi = dyn_cast<PHINode>(next);
+                }
               }
             }
           }
@@ -194,18 +197,17 @@ struct FinalDCE : public FunctionPass
           if (!instr->isTerminator())
           {
             Instruction *next = instr->getNextNode();
-            for(auto i:analysis[next].liveIn)
+            for (auto i : analysis[next].liveIn)
               analysis[instr].liveOut.insert(i);
             //analysis[instr].liveOut.insert(next);
           }
           else
           {
             //last inst in basic block, get next block
-            TerminatorInst *term = dyn_cast<TerminatorInst>(instr);
-            int succs = term->getNumSuccessors();
+            int succs = instr->getNumSuccessors();
             for (int k = 0; k < succs; k++)
             {
-              BasicBlock *blok = term->getSuccessor(k);
+              BasicBlock *blok = instr->getSuccessor(k);
               //add the first nodes in to my out
               for (auto kk : analysis[&*(blok->begin())].liveIn)
               {
